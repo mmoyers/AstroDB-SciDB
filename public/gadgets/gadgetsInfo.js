@@ -82,6 +82,20 @@ var gadgets = {
     description: "Display and interact with fits files. Powered by Amit Kapadia's AstroJS FITS parser.",
     author: "Amit Kapadia - amit@zooniverse.com, Spencer Wallace - spencerw@email.arizona.edu",
     version: "0.1"
+  },
+   timeSeriesInquirer: { 
+    name: "SciDB Time Series",
+    fileName: "timeSeries.html",
+    description: "Create and Execute timeseries quieres to SciDB",
+    author: "Matthew Moyers",
+    version: "0.1"
+  },
+  SciDBQuery: { 
+    name: "SciDB Query",
+    fileName: "sciDBQuery.html",
+    description: "Create and Execute quieres to SciDB",
+    author: "Matthew Moyers",
+    version: "0.1"
   }
 }
 
