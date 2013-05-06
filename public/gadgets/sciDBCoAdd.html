@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>Data Inquirer</title>
+    
+    <!-- ASCOT Basic Style Sheets -->
+    <link href="/css/reset.css" rel="stylesheet" type="text/css">
+    <link href="/css/text.css" rel="stylesheet" type="text/css"> 
+    <link href="/css/widgets.css" rel="stylesheet" type="text/css">
+    <style type="text/css">
+    .hidden {
+        display: none;
+    }
+    </style>
+</head>
+<body>
+    <div id="content" class="extraPadding">
+        <h2>SciDB Co-Add</h2>
+        <div style="display: inline-block; ">
+            <div style="float: left">
+                <div>
+                Table: 
+                    <select id="tableName" style="margin-left: 16px">
+                        <option value="CCD">CCD</option>
+                    </select>
+                </div>
+                <div>
+                Aggerate Function:
+                    <select id="aggFunction" onchange="updateQuery()">
+                        <option value="sum" selected="selected" >sum</option>
+                    </select>
+                </div>
+            </div>
+            <div style="float: right; margin-left: 150px">
+                <input id="z_scale" type="checkbox" />Enable Sigma Cliping<br />
+                <input id="z_value" type="text" style="margin-left: 30px"/>
+            </div>
+        </div>
+        <div>
+            <div>
+                <textarea id="txtQueryString" rows="2" style="width : 95%"></textarea>
+            </div>
+            <div>
+                <input id="submitQuery" type="button" value="Submit" />
+                <input id="showQuery" type="button" value="Show Query" onclick="toggle('txtQueryString');"/>
+            </div>
+            <div id="divStatusText" style="display: inline;"></div> 
+        </div>
+    </div>
+</body>
+<script src="http://code.jquery.com/jquery-1.8.1.min.js" type="text/javascript"></script>
+<script src="/util.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+var scidbServerAPI = "http://rio.cs.washington.edu:5551/"
+  
+// Status Icons
+var ICON_URL_SELECTED = '/images/targetYellow.png';
+var ICON_URL_DEFAULT = '/images/target.png';
+var ICON_URL_SPINNER = '/images/spinnerSmallWhite.gif';
+var ICON_URL_ERROR = '/images/errorIcon.gif';
+var ICON_URL_SUCCESS = '/images/successIcon.gif';
+
+var myFields = {}
+
+// Gadget State Variables
+var viewportBounds;
+var currentQuery = {};
+var boundSources = [];
+
+// create HR object
+gadget.init = function(callback) {
+    gadget.update = function(){};
+    callback();
+}
+
+gadget.saveState = function(){
+  return {}
+};
+
+gadget.loadState = function(state){
+};
+
+function toggle(id) {
+    $element = $("#" + id);
+    if($element.hasClass("hidden")) {
+        $element.removeClass("hidden");
+    } else {
+        $element.addClass("hidden");
+    }
+    
+    gadget.resize();
+}
+
+function updateQuery() {
+    var agg = document.getElementById("aggFunction");
+    var agg_text = agg.options[agg.selectedIndex].text;
+    
+    var table = document.getElementById("tableName");
+    var table_text = table.options[table.selectedIndex].text;
+    
+    //select sum(data) from CCD group by row, col
+    
+    $('#txtQueryString').text("select " + agg_text +  "(data) from " + table_text + " group by row, col");
+}
+
+function showStatus(iconUrl, text) {
+    var statusDiv = $('#divStatusText')[0];
+    text = text || "DataSet Loaded";
+    var status = text; 
+    if (iconUrl !== "") {
+        status = '<img id="imgStatus" style="vertical-align:middle;" src="' + iconUrl + '" /> ' + "<span style='vertical-align:middle;'>" + text + "</span>";
+    } 
+    statusDiv.style.visibility = 'inline';
+    statusDiv.innerHTML = status;
+}
+
+window.onload = function() {
+    // Set Up Buttons
+    $('#submitQuery').on("click", function() {
+        var request = {};
+        request['query'] =  $('#txtQueryString').attr('value');
+        request['iterative'] = false;
+        request['iteration'] = 0;
+        request['z_scale'] = $("#z_scale").attr("checked") == "checked";
+        request['z_value'] = $("#z_value").attr("value");
+        request['language'] = 'aql';
+        
+        console.log('Sending Request:' + JSON.stringify(request));
+        
+        $.ajax({
+            url: scidbServerAPI + "process/query/fits/",
+            type: "POST",
+            contentType: "application/json",
+            dataType: "jsonp",
+            data: request,
+            beforeSend: function() { showStatus(ICON_URL_SPINNER, "Processing Query..."); },
+            error: function() { showStatus(ICON_URL_ERROR, "A network errored occured while processing the query."); },
+            success: function(result) {
+                console.log("Received Result:");
+                console.log(result);
+                if (result['status'] === 'OK') {
+                    showStatus(ICON_URL_SUCCESS, "Query Complete.");
+                    
+                    gadget.notify('image_viewer', {'function': 'NEW', 'data': result});
+                    
+                } else {
+                    showStatus(ICON_URL_ERROR, "An errored occured while processing the query.");
+                }
+            }
+        });
+    });    
+    
+    toggle('txtQueryString');
+    updateQuery();  
+}; // End of onload
+</script>
+</html>
