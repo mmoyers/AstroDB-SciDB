@@ -184,30 +184,9 @@ var renderFile = function(file) {
 	reader.readAsArrayBuffer(file);
 }
 
-<<<<<<< HEAD
-
-var renderImageFile = function (file) {
-    $('#init').hide();
-	gadget.resize();
-	$('#dropLabel').html('Loading file...');
-	$('#loadingBar').show();
-    
-	// Need to convert the file to an arraybuffer to be read by astroJsFits
-	var reader = new FileReader();
-	reader.onload = function(event) {
-		  var contents = event.target.result;
-		  
-		  astroJsFits.initalize(contents, $('#canvasArea'), displayWidth, displayHeight);
-		  fitsCanvas = astroJsFits.getCanvas();
-		  fitsHeader = astroJsFits.getHeader();
-		  renderSuccess();
-	};
-	reader.readAsDataURL(file);
-=======
 var setImageExtremes = function(lower, upper) {
 	astroJsFits.changeExtremes(lower, upper);
   draw();
->>>>>>> ccdf4ce4d546524f941ccfc5ffbf685e4df4879d
 }
 
 // Executes after a FITS file is successfully loaded
@@ -826,7 +805,7 @@ var addDataSetPoints = function() {
 				</div>
 				</table>
 				<div id="init">
-					<input type="file" onchange="renderImageFile(this.files[0])"><br>
+					<input type="file" onchange="renderFile(this.files[0])"><br>
 					or choose a remote file:
 					<select id="sampleImageSelect"></select><br>
 					<input type="button" id="fetchURL" value="Fetch" style="padding: 3px"><input id="imageURL" value="From URL" size="50">

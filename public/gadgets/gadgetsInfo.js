@@ -61,7 +61,7 @@ var gadgets = {
     description: "Display DataSets as a table with movable and sortable columns.",
     author: "Ian Smith - imsmith@uw.edu",
     version: "0.1"
-  }
+  },
   /*
   fitsViewer_PDR: { 
     name: "Fits Viewer PDR",
