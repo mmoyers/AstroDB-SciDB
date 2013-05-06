@@ -61,6 +61,20 @@ var gadgets = {
     description: "Display DataSets as a table with movable and sortable columns.",
     author: "Ian Smith - imsmith@uw.edu",
     version: "0.1"
+  },
+  sciDBCoAdd: { 
+    name: "SciDB CoAdd",
+    fileName: "sciDBCoAdd.html",
+    description: "Builds and Executes CoAdd queries against SciDB, sends results to astroJsFitsViewer in the form of a fits file",
+    author: "Matthew Moyers - mmoyers@gmail.com",
+    version: "0.1"
+  },
+  sciDBTimeseries: { 
+    name: "SciDB Timeseries",
+    fileName: "timeSeries.html",
+    description: "Displays Timeseries graphs, connected with astroJsFitsViewer to get boundaries from SciDB CoAdds",
+    author: "Matthew Moyers - mmoyers@gmail.com",
+    version: "0.1"
   }
   /*
   fitsViewer_PDR: { 
