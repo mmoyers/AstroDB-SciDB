@@ -91,7 +91,7 @@ var gadgets = {
     version: "0.1"
   },
   SciDBQuery: { 
-    name: "SciDB Query",
+    name: "SciDB CoAdd",
     fileName: "sciDBQuery.html",
     description: "Create and Execute quieres to SciDB",
     author: "Matthew Moyers",

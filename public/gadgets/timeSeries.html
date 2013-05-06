@@ -137,9 +137,9 @@ function generateQuery() {
 }
  
 function executeTimeSeries() {
-    //showStatus(ICON_URL_SPINNER, "Processing Time Series...");
-    //setTimeout('draw_timeseries(test_result['data']);showStatus(ICON_URL_SUCCESS, "Time Series Complete.");', 100);
-    //return;
+    showStatus(ICON_URL_SPINNER, "Processing Time Series...");
+    setTimeout('draw_timeseries(test_result["data"]);showStatus(ICON_URL_SUCCESS, "Time Series Complete.");', 100);
+    return;
     
     var request = { 'query': $('#txtQueryString').attr('value') };
 
@@ -202,7 +202,25 @@ function draw_timeseries(data_json) {
         chart: {
             renderTo: 'timeseries_plot',
             type: 'scatter',
-            marginBottom: 35
+            marginBottom: 35,
+            events: {
+                selection: function(event) {
+                    // select correct points and reset selection on points not in the box
+                    for (var i = 0; i < this.series[0].data.length; i++) {
+                        var point = this.series[0].data[i];
+                        if (point.x >= event.xAxis[0].min &&
+                            point.x <= event.xAxis[0].max &&
+                            point.y >= event.yAxis[0].min &&
+                            point.y <= event.yAxis[0].max) {
+                                point.select(true, true);
+                            } else if(point.selected) {
+                                point.select(false, true);
+                            }
+                    }
+                    return false;
+                }
+            },
+            zoomType: 'xy'
         },
         title: {
             text: 'Timeseries',
@@ -237,16 +255,16 @@ function draw_timeseries(data_json) {
             enabled: false
         },
         plotOptions: {
+                column: { allowPointSelect: true },
                 series: {
                     cursor: 'pointer',
-                    point: {
-                        events: {
-                            click: function() {
-                                var time = this.x;
-                                var query = "select data from CCD where col >  " + bounds.x + " and col < " + (bounds.x+bounds.width) + " and row > " + bounds.y + " and row < " + (bounds.y+bounds.height) + " and time = " + time;
-                                
-                                console.log(query);
-                            }
+                    events: {
+                        click: function(event) {
+                            var time = this.category;
+                            var query = "select data from CCD where col >  " + bounds.x + " and col < " + (bounds.x+bounds.width) +
+                                " and row > " + bounds.y + " and row < " + (bounds.y+bounds.height) + " and time = " + time;
+                            
+                            console.log(query);
                         }
                     }
                 }
