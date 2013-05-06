@@ -67,6 +67,7 @@ function success(instance) {
   gadget.inflateState();
   // Add event listeners
   google.earth.addEventListener(googleEarthInstance.getView(), "viewchangebegin", initCenterOfCoordinates);
+		redrawAll();
 }  
 
 function failure(errorCode) {
@@ -137,7 +138,7 @@ function writeCurrentBounds(){
 // KML
 // Clears all the KML from ge by removing every child.
 function clearKML() {
-  if (googleEarthInstance !== null){
+  if (googleEarthInstance !== undefined){
     var features = googleEarthInstance.getFeatures();
     while (features.getFirstChild()) {
       features.removeChild(features.getFirstChild());
@@ -153,7 +154,7 @@ function plotDataset(dataSetName) {
     
   if (dataSet.isVisible()) {
     for (var i=0, len=dataSet.length(); i<len; i++) {
-      if (dataSet.getRecord(i).visible) { // check the visible property of the record
+      if (dataSet.getRecord(i).visible && dataSet.getRecord(i).visible != "false") { // check the visible property of the record
         kmlDataSetRecords.push(toKML(dataSet.getRecord(i)));
       }
     }

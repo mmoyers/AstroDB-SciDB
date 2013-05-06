@@ -68,7 +68,7 @@ function populateGadgetsList(gadgetsList){
    } 
  }
  
-$("#gadgetsList li").click(function(){
+$("#gadgetsList li").hover(function(){
   var selectedId = $(this).find("input").get(0).id;
   var selectedGadget = gadgets[selectedId];
   $("#gadgetName").html(selectedGadget.name);
@@ -138,7 +138,7 @@ $.receiveMessage(function(e) {
   width: 960px;
   height: 562px;
   margin: auto;
-  padding-top: 63px;
+  padding-top: 40px;
   background: #b3adc6;
   border: 1px solid #bab9ba;
   position: absolute;
@@ -224,8 +224,8 @@ $.receiveMessage(function(e) {
   user-select: none;
   
 }
-
 #gadgetsList li:hover{
+
   background: #c4bedd;
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
@@ -259,7 +259,7 @@ $.receiveMessage(function(e) {
     </div> 
     <div id="gadgetsPanel" style="display: none">
       <div id="gadgetSelection" style="width:35%; padding: 15px; padding-top: 0px; float: left">
-        <h2>Choose your gadgets:</h2>
+        Choose your gadgets:
         <form action="#" method="get">   
           <ul id="gadgetsList"></ul>
         </form>
@@ -275,8 +275,13 @@ $.receiveMessage(function(e) {
         <dl>
           <dt>Version:</dt>
           <dd id="gadgetVersion"></dd>
-        </dl>  
+        </dl> 
       </div>
+			<div id="note" style="position: absolute; left: 25%; top: 78%;">
+				<h1>Note:</h1>
+					The ordering of the gadgets on the dashboard is controlled by the sequence in which they are selected.
+					Gadgets selected first will fill the left, and then the right column from top to bottom.
+			</div>
     </div>
     <footer><a href="http://www.astro.washington.edu/" id="departmentLogo"></a></footer>
   </div>
