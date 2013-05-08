@@ -57,7 +57,7 @@ var EDIT_TYPE = {ADD: 1, REMOVE: 2, ZOOM: 3, PAN: 4, SELECT: 5};
 var ANNO_TYPE = {RECT: 1, CIRCLE: 2, POLY: 3, DATA: 4};
 var COORD_TYPE = {PIXEL: 1, WCS: 2};
 
-function FitsViewerGadget() {
+function TabState() {
     // modules
     this.annotator;
     this.fits;
@@ -124,6 +124,10 @@ var displayContext;
 var editContext;
 var imageDimensions;
 
+// Tab stuff
+var activeTabNumber = 0;
+var tabStates = new Array();
+
 gadget.saveState = function(){};
 gadget.loadState = function(state){
 	if (state) {
@@ -137,7 +141,8 @@ gadget.loadState = function(state){
 }
 
 gadget.init = function(finishedLoading){
-	initTabViewer();
+	initTabViewer(0);
+	initTabViewer(1);
 	gadget.update = function() {};
 	gadget.onNotification('dataSetChanged', dataSetChanged);
 	finishedLoading();
@@ -154,17 +159,37 @@ var getActiveTabNumber = function() {
     
     return -1; // error no active tab
 }
-var getElement = function(id) {
-    var activeTabNumber = 0;
-    var element = $("#tab" + activeTabNumber + " ." + id);
+var getElement = function(id, tabNumber) {
+    if (!tabNumber) {
+        tabNumber = activeTabNumber;
+    }
+    
+    var element = $("#tab" + tabNumber + " ." + id);
+    
     if(element) {
         return element[0];
     }
     return;
 }
 
-// Initalize the fits viewer, called when the gadget is initalized
-var initTabViewer = function() {
+var restoreTabState = function(tabNumber) {
+    if (tabStates[tabNumber]) {
+        var tabState = tabStates[tabNumber];
+        
+        fits = tabState.fits;
+        astroJsFits = tabState.astroJsFits;
+        annotator = tabState.annotator;
+    }
+    
+}
+
+// Initalize the fits tab viewer, called when the gadget is initalized
+var initTabViewer = function(tabNumber) {
+    if (!tabStates[tabNumber]) {
+        tabStates[tabNumber] = new TabState();
+    }
+    
+    var tabState = tabStates[tabNumber];
     // Set configuration options for requirejs
     var config = {
         paths: {
@@ -173,23 +198,53 @@ var initTabViewer = function() {
         }
     };
     require(config, ['fits','pngParser', '/binaryajax.js', 'canvasAnnotator', 'cs!/astroJS/display'], function(_fits, PNGParser, BinaryAjax, canvasAnnotator, _astroJsFits) {
-        fits = _fits;
-        astroJsFits = _astroJsFits;
-        annotator = canvasAnnotator;
+        tabState.fits = _fits;
+        tabState.astroJsFits = _astroJsFits;
+        tabState.annotator = canvasAnnotator;
+            
+        if (activeTabNumber == tabNumber) {
+            restoreTabState(tabNumber);
+        }
         
         //initCanvases();
-        initHTMLControls();
+        // Load an image from URL when 'Fetch' is clicked
+        $(getElement('fetchURL')).click(function() {
+            imageFromUrl($(getElement('imageURL')).val());
+        });
         
-        $(getElement('dropbox')).on("dragenter", noopHandler);
-        $(getElement('dropbox')).on("dragexit", noopHandler);
-        $(getElement('dropbox')).on("dragover", noopHandler);
+        // Load an image from the server when one is selected from the 'remote files' dropdown box
+        var imageList = $(getElement("sampleImageSelect", tabNumber));
+        $.each(imageFiles, function() {
+                imageList.append($("<option />").val(this.path).text(this.name));
+        });
+        imageList.change(function() {
+                gadget.setState({ imagePath : $(this).val()});
+                imageFromUrl($(this).val());
+        });
         
-        $(getElement('canvasArea')).on('mousedown', handleMousedown);
-        $(getElement('canvasArea')).on('mouseup', handleMouseup);
-        $(getElement('canvasArea')).on('mousemove', handleMousemove);
-        $(getElement('canvasArea')).on('mouseout', handleMouseout);
+        var stretchSelect = $(getElement("stretchSelect", tabNumber));
+        $.each(stretchOptions, function() {
+            stretchSelect.append($("<option />").val(this).text(this));
+        });
         
-        $(getElement('display')).on('mousewheel', handleMousewheel);
+        // Construct the dropdown box for the selection colors
+        var colorSelect = $(getElement("selectionColorSelect", tabNumber));
+        var items = ["red", "green", "blue", "yellow", "unselect"];
+        $.each(items, function(index, value) {
+                colorSelect.append($("<option />").val(value).text(value));
+        });
+        
+        
+        $(getElement('dropbox', tabNumber)).on("dragenter", noopHandler);
+        $(getElement('dropbox', tabNumber)).on("dragexit", noopHandler);
+        $(getElement('dropbox', tabNumber)).on("dragover", noopHandler);
+        
+        $(getElement('canvasArea', tabNumber)).on('mousedown', handleMousedown);
+        $(getElement('canvasArea', tabNumber)).on('mouseup', handleMouseup);
+        $(getElement('canvasArea', tabNumber)).on('mousemove', handleMousemove);
+        $(getElement('canvasArea', tabNumber)).on('mouseout', handleMouseout);
+        
+        $(getElement('display', tabNumber)).on('mousewheel', handleMousewheel);
             
             // Bring up an existing image if one is saved to the dashboard state
             if (savedImagePath != undefined)
@@ -204,7 +259,8 @@ var initTabViewer = function() {
         //   value.innerHTML = pixelInfo.value;
         // };
     
-      });
+        console.log("Tab init " + tabNumber);
+  });
 }
 
 // Create and set canvas attributes; The annotator canvas
@@ -395,16 +451,6 @@ var dataSetSelectChange = function() {
 	selectedDataSetId = parseInt(el.options[el.selectedIndex].value);
 }
 
-var populateStretchSelect = function() {
-	var el = getElement("stretchSelect");
-	for (i in stretchOptions) {
-		var option = document.createElement("OPTION");
-		option.text = stretchOptions[i];
-		option.value = stretchOptions[i];
-		el.options.add(option);
-	}
-}
-
 // Gets all of the dataset names and puts them in the import dataset dropdown
 var populateDataSetSelect = function() {
 	var el = getElement("datasetNameSelect");
@@ -571,34 +617,6 @@ var imageFromUrl = function(path) {
 		'url': '/xhrProxy/' + encodeURIComponent(path),
 		success: renderImage 
 	});
-}
-  
-// HTML controls
-
-var initHTMLControls = function() {
-	// Load an image from URL when 'Fetch' is clicked
-	$(getElement('fetchURL')).click(function() {
-		imageFromUrl($(getElement('imageURL')).val());
-	});
-	
-	// Load an image from the server when one is selected from the 'remote files' dropdown box
-	var imageList = $(getElement("sampleImageSelect"));
-  $.each(imageFiles, function() {
-    imageList.append($("<option />").val(this.path).text(this.name));
-  });
-  imageList.change(function() {
-  	gadget.setState({ imagePath : $(this).val()});
-  	imageFromUrl($(this).val());
-  });
-  
-  populateStretchSelect();
-
-	// Construct the dropdown box for the selection colors
-  var colorSelect = $(getElement("selectionColorSelect"));
-  var items = ["red", "green", "blue", "yellow", "unselect"];
-  $.each(items, function(index, value) {
-  	colorSelect.append($("<option />").val(value).text(value));
-  });
 }
 
 // Called when the user clicks 'unload image'
@@ -840,7 +858,9 @@ window.onload = function() {
       //e.target = activated tab
       //e.relatedTarget = previous tab
       gadget.resize();
-      console.log(getActiveTabNumber());
+      activeTabNumber = getActiveTabNumber();
+      restoreTabState(activeTabNumber);
+      console.log("Tab Switch to tab" + activeTabNumber);
     });
 }; // End of onload
 
@@ -888,19 +908,19 @@ window.onload = function() {
                     <label style="float:right"><input type="checkbox" class="showAnnotations" value="showAnnotations" checked="checked" onclick="clickShowAnnotations();" />Show Annotations</label>
                     <legend style="width:10%">Annotations</legend>
                     <ul class="nav nav-tabs">
-                         <li class="active"><a href="#panControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.PAN;">Pan</a></li>
-                         <li><a href="#selectControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.SELECT;">Select</a></li>
-                         <li><a href="#addControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.ADD;">Add</a></li>
-                         <li><a href="#removeControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.REMOVE;">Remove</a></li>
+                         <li class="active"><a href="#panControls0" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.PAN;">Pan</a></li>
+                         <li><a href="#selectControls0" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.SELECT;">Select</a></li>
+                         <li><a href="#addControls0" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.ADD;">Add</a></li>
+                         <li><a href="#removeControls0" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.REMOVE;">Remove</a></li>
                     </ul>
                     <div class="annoControls" class="tab-content">
-                        <div class="panControls" class="tab-pane active">
+                        <div id="panControls0" class="tab-pane active">
                             Pan IT!
                         </div>
-                        <div class="selectControls" class="tab-pane">
+                        <div id="selectControls0" class="tab-pane">
                             Color: <select class="selectionColorSelect"></select>
                         </div>
-                        <div class="addControls" class="tab-pane">
+                        <div id="addControls0" class="tab-pane">
                             <div class="form-inline">
                                 <label>
                                     <input type="radio" value="circle" class="addTypeRad" name="addTypeRad" checked="checked" onclick="clickRadioCircle();" />Circle
@@ -946,7 +966,7 @@ window.onload = function() {
                                 <input type="radio" value="wcs" class="coordTypeRad" name="coordTypeRad" checked="checked" onclick="clickRadioWCS();" /><label>WCS</label><br>
                             </div>
                         </div>
-                        <div class="removeControls" class="tab-pane">
+                        <div id="removeControls0" class="tab-pane">
                             <select class="annoSelect" size="3" onchange="clickRemovalSelection();">
                             <input type="button" value="Remove All" onclick="removeAnnotations();">
                             <input type="button" value="Remove Selected" onclick="removeSelectedAnnotation();">
@@ -992,19 +1012,19 @@ window.onload = function() {
                     <label style="float:right"><input type="checkbox" class="showAnnotations" value="showAnnotations" checked="checked" onclick="clickShowAnnotations();" />Show Annotations</label>
                     <legend style="width:10%">Annotations</legend>
                     <ul class="nav nav-tabs">
-                         <li class="active"><a href="#panControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.PAN;">Pan</a></li>
-                         <li><a href="#selectControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.SELECT;">Select</a></li>
-                         <li><a href="#addControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.ADD;">Add</a></li>
-                         <li><a href="#removeControls" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.REMOVE;">Remove</a></li>
+                         <li class="active"><a href="#panControls1" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.PAN;">Pan</a></li>
+                         <li><a href="#selectControls1" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.SELECT;">Select</a></li>
+                         <li><a href="#addControls1" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.ADD;">Add</a></li>
+                         <li><a href="#removeControls1" data-toggle="tab" onclick="selectedEditType = EDIT_TYPE.REMOVE;">Remove</a></li>
                     </ul>
                     <div class="annoControls" class="tab-content">
-                        <div class="panControls" class="tab-pane active">
+                        <div id="panControls1" class="tab-pane active">
                             Pan IT!
                         </div>
-                        <div class="selectControls" class="tab-pane">
+                        <div id="selectControls1" class="tab-pane">
                             Color: <select class="selectionColorSelect"></select>
                         </div>
-                        <div class="addControls" class="tab-pane">
+                        <div id="addControls1" class="tab-pane">
                             <div class="form-inline">
                                 <label>
                                     <input type="radio" value="circle" class="addTypeRad" name="addTypeRad" checked="checked" onclick="clickRadioCircle();" />Circle
@@ -1050,7 +1070,7 @@ window.onload = function() {
                                 <input type="radio" value="wcs" class="coordTypeRad" name="coordTypeRad" checked="checked" onclick="clickRadioWCS();" /><label>WCS</label><br>
                             </div>
                         </div>
-                        <div class="removeControls" class="tab-pane">
+                        <div id="removeControls1" class="tab-pane">
                             <select class="annoSelect" size="3" onchange="clickRemovalSelection();">
                             <input type="button" value="Remove All" onclick="removeAnnotations();">
                             <input type="button" value="Remove Selected" onclick="removeSelectedAnnotation();">
