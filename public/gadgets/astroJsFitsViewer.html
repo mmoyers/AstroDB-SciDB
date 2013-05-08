@@ -108,7 +108,7 @@ var dragStart = {x: '', y: ''};
 var selectedCoordType = COORD_TYPE.WCS;
 var selectedEditType = EDIT_TYPE.PAN;
 var selectedAnnoType = ANNO_TYPE.CIRCLE;
-var polyCreateList = []
+var polyCreateList = [];
 var selectedDataSet;
 var selectedDataSetId = -1;
 var fitsHeader;
@@ -176,11 +176,77 @@ var restoreTabState = function(tabNumber) {
     if (tabStates[tabNumber]) {
         var tabState = tabStates[tabNumber];
         
+        // modules
         fits = tabState.fits;
         astroJsFits = tabState.astroJsFits;
         annotator = tabState.annotator;
+        wcs = tabState.wcs;
+        
+        // Gadget state
+        savedImagePath = tabState.savedImagePath;
+        showAnnotations = tabState.showAnnotations;
+        imageLoaded = tabState.imageLoaded;
+        leftMouseDown = tabState.leftMouseDown;
+        prevSelectedIndex = tabState.prevSelectedIndex;
+        dragStart = tabState.dragStart;
+        selectedCoordType = tabState.selectedCoordType;
+        selectedEditType = tabState.selectedEditType;
+        selectedAnnoType = tabState.selectedAnnoType;
+        polyCreateList = tabState.polyCreateList;
+        selectedDataSet = tabState.selectedDataSet;
+        selectedDataSetId = tabState.selectedDataSetId;
+        fitsHeader = tabState.fitsHeader;
+        
+        // Canvases and attributes
+        display = tabState.display;
+        fitsCanvas = tabState.fitsCanvas;
+        annotatorCanvas = tabState.annotatorCanvas;
+        editCanvas = tabState.editCanvas;
+        displayWidth = tabState.displayWidth;
+        displayHeight = tabState.displayHeight;
+        displayContext = tabState.displayContext;
+        editContext = tabState.editContext;
+        imageDimensions = tabState.imageDimensions;
     }
     
+}
+
+var saveTabState = function(tabNumber) {
+    if (tabStates[tabNumber]) {
+        var tabState = tabStates[tabNumber];
+        
+        // modules
+        tabState.fits = fits;
+        tabState.astroJsFits = astroJsFits;
+        tabState.annotator = annotator;
+        tabState.wcs = wcs;
+
+        // Gadget state
+        tabState.savedImagePath = savedImagePath;
+        tabState.showAnnotations = showAnnotations;
+        tabState.imageLoaded = imageLoaded;
+        tabState.leftMouseDown = leftMouseDown;
+        tabState.prevSelectedIndex = prevSelectedIndex;
+        tabState.dragStart = dragStart;
+        tabState.selectedCoordType = selectedCoordType;
+        tabState.selectedEditType = selectedEditType;
+        tabState.selectedAnnoType = selectedAnnoType;
+        tabState.polyCreateList = polyCreateList;
+        tabState.selectedDataSet = selectedDataSet;
+        tabState.selectedDataSetId = selectedDataSetId;
+        tabState.fitsHeader = fitsHeader;
+        
+        // Canvases and attributes
+        tabState.display = display;
+        tabState.fitsCanvas = fitsCanvas;
+        tabState.annotatorCanvas = annotatorCanvas;
+        tabState.editCanvas = editCanvas;
+        tabState.displayWidth = displayWidth;
+        tabState.displayHeight = displayHeight;
+        tabState.displayContext = displayContext;
+        tabState.editContext = editContext;
+        tabState.imageDimensions = imageDimensions;
+    }
 }
 
 // Initalize the fits tab viewer, called when the gadget is initalized
@@ -201,6 +267,18 @@ var initTabViewer = function(tabNumber) {
         tabState.fits = _fits;
         tabState.astroJsFits = _astroJsFits;
         tabState.annotator = canvasAnnotator;
+        
+        tabState.showAnnotations = true;
+        tabState.imageLoaded = false;
+        tabState.leftMouseDown = false;
+        tabState.prevSelectedIndex = -1;
+        tabState.dragStart = {x: '', y: ''};
+        tabState.selectedCoordType = COORD_TYPE.WCS;
+        tabState.selectedEditType = EDIT_TYPE.PAN;
+        tabState.selectedAnnoType = ANNO_TYPE.CIRCLE;
+        tabState.polyCreateList = []
+        tabState.selectedDataSetId = -1;
+        
             
         if (activeTabNumber == tabNumber) {
             restoreTabState(tabNumber);
@@ -267,24 +345,24 @@ var initTabViewer = function(tabNumber) {
 // is used for drawing annotations; The edit canvas is used for drawing edit marks like selection boxes and
 // the display canvas is the surface onto which the other canvases are displayed
 var initCanvases = function() {
-	display = getElement('display');
-  var canvasArea = getElement('canvasArea');
-	
-	display.width = canvasArea.offsetWidth;
-	display.height = canvasArea.offsetHeight;
-  displayContext = display.getContext('2d');
-  displayWidth = display.width;
-  displayHeight = display.height;
-  
-  annotatorCanvas = document.createElement('canvas');
-  annotatorCanvas.setAttribute('width', displayWidth);
-  annotatorCanvas.setAttribute('height', displayHeight);
-  editCanvas = document.createElement('canvas');
-  editCanvas.setAttribute('width', displayWidth);
-  editCanvas.setAttribute('height', displayHeight);
-  editContext = editCanvas.getContext('2d');
-  editContext.fillStyle = "white";
-  editContext.globalAlpha = 0.5;
+    display = getElement('display');
+    var canvasArea = getElement('canvasArea');
+    
+    display.width = canvasArea.offsetWidth;
+    display.height = canvasArea.offsetHeight;
+    displayContext = display.getContext('2d');
+    displayWidth = display.width;
+    displayHeight = display.height;
+    
+    annotatorCanvas = document.createElement('canvas');
+    annotatorCanvas.setAttribute('width', displayWidth);
+    annotatorCanvas.setAttribute('height', displayHeight);
+    editCanvas = document.createElement('canvas');
+    editCanvas.setAttribute('width', displayWidth);
+    editCanvas.setAttribute('height', displayHeight);
+    editContext = editCanvas.getContext('2d');
+    editContext.fillStyle = "white";
+    editContext.globalAlpha = 0.5;
 }
 
 // Send a file object to the FITS parser to be displayed
@@ -858,8 +936,10 @@ window.onload = function() {
       //e.target = activated tab
       //e.relatedTarget = previous tab
       gadget.resize();
+      saveTabState(activeTabNumber);
       activeTabNumber = getActiveTabNumber();
       restoreTabState(activeTabNumber);
+      
       console.log("Tab Switch to tab" + activeTabNumber);
     });
 }; // End of onload
