@@ -56,9 +56,9 @@
     <div id="content" class="extraPadding">
         <h2>Time Series</h2>
         <div id="divQueryBox" style="width : 96%; margin-top: 10px;">
-            Query String: <input onclick="generateQuery();" type="button" value="Generate Query" />
+            Query String: <input onclick="generateLightCurveQuery();" type="button" value="Generate Query" />
             <div>
-                <textarea id="txtQueryString" rows="5" style="width : 100%"></textarea>
+                <textarea id="txtQueryString" rows="2" style="width : 100%"></textarea>
             </div>
         </div>
         <div>
@@ -66,7 +66,7 @@
             <div id="divStatusText" style="display: inline;">
             </div> 
         </div>
-        <div id="timeseries_plot" style="height: 400px">
+        <div id="timeseries_plot">
         </div>
     </div>
 </body>
@@ -92,6 +92,7 @@ var currentQuery = {};
 var boundSources = [];
 
 var bounds;
+var chart;
 
 gadget.init = function(callback){
     gadget.update = function(){};
@@ -103,10 +104,12 @@ gadget.init = function(callback){
     bounds.width = 0;
     
     gadget.onNotification('queryBoundsChanged', function(rectangle) {
-            bounds.x = rectangle.img_x;
-            bounds.y = rectangle.img_y;
-            bounds.height = rectangle.height;
-            bounds.width = rectangle.width;
+            bounds.x = Math.round( rectangle['x'] );
+            bounds.y = Math.round( rectangle['y'] );
+            bounds.height = Math.round( rectangle['height'] );
+            bounds.width = Math.round( rectangle['width'] );
+            
+            console.log(rectangle);
     });
     
     callback();
@@ -129,16 +132,35 @@ var test_result = {
     }
 };
 
-function generateQuery() {
-    var genQuery = "select sum(data) from CCD where col >  " + bounds.x + " and col < " + (bounds.x+bounds.width) + " and row > " + bounds.y + " and row < " + (bounds.y+bounds.height) + " group by time";
-    //var genQuery = "select sum(data) from CCD where row > 308256 and row < 308273 and col > 277621 and col < 277637 group by time";
+function generateLightCurveQuery() {
+    var genQuery = "select sum(data) from subarray(CCD_DEMO, " + bounds.x + ", " + bounds.y + ",0 ," + (bounds.x+bounds.width) + ", "  + (bounds.y+bounds.height) + ", 30) group by time";
     $("#txtQueryString").html(genQuery);
+}
+
+function generateCoAddQuery() {
+    var query = document.getElementById("txtQueryString").value;
+    var query = query.split("group by")[0];
+    var points = chart.series[0].data;
+    
+    var wheres = new Array();
+    for(var i = 0; i < points.length; i++) {
+        var point = points[i];
+        if(point.selected) {
+            wheres.push(" time = " + point.x + " ");
+        }
+    }
+    
+    if(wheres.length > 0) {
+        query += " where " + wheres.join("or");
+    }
+    
+    return query + " group by row, col";
 }
  
 function executeTimeSeries() {
-    showStatus(ICON_URL_SPINNER, "Processing Time Series...");
-    setTimeout('draw_timeseries(test_result["data"]);showStatus(ICON_URL_SUCCESS, "Time Series Complete.");', 100);
-    return;
+    //showStatus(ICON_URL_SPINNER, "Processing Time Series...");
+    //setTimeout('draw_timeseries(test_result["data"]);showStatus(ICON_URL_SUCCESS, "Time Series Complete.");', 100);
+    //return;
     
     var request = { 'query': $('#txtQueryString').attr('value') };
 
@@ -163,6 +185,7 @@ function executeTimeSeries() {
             if (result['status'] === 'OK') {
                 showStatus(ICON_URL_SUCCESS, "Time Series Complete.");
                 draw_timeseries(result['data']);
+                gadget.resize();
             } else {
                 showStatus(ICON_URL_ERROR, "An errored occured while processing the time series.");
             }
@@ -197,7 +220,7 @@ function draw_timeseries(data_json) {
     console.log(x_data);
     console.log(y_data);
     
-    var chart = new Highcharts.Chart({
+    chart = new Highcharts.Chart({
         chart: {
             renderTo: 'timeseries_plot',
             type: 'scatter',
@@ -216,6 +239,9 @@ function draw_timeseries(data_json) {
                                 point.select(false, true);
                             }
                     }
+                    
+                    gadget.notify('queryUpdate', {'query': generateCoAddQuery()});
+                    
                     return false;
                 }
             },
@@ -259,11 +285,7 @@ function draw_timeseries(data_json) {
                     cursor: 'pointer',
                     events: {
                         click: function(event) {
-                            var time = this.category;
-                            var query = "select data from CCD where col >  " + bounds.x + " and col < " + (bounds.x+bounds.width) +
-                                " and row > " + bounds.y + " and row < " + (bounds.y+bounds.height) + " and time = " + time;
-                            
-                            console.log(query);
+                            gadget.notify('queryUpdate', {'query': generateCoAddQuery()});
                         }
                     }
                 }

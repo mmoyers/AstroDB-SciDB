@@ -22,8 +22,10 @@
             <div style="float: left">
                 <div>
                 Table: 
-                    <select id="tableName" style="margin-left: 16px">
+                    <select id="tableName" style="margin-left: 16px" onchange="updateQuery()">
                         <option value="CCD">CCD</option>
+                        <option value="CCDF_SAMPLE_SUB">CCDF_SAMPLE_SUB</option>
+                        <option value="CCD_DEMO">CCD_DEMO</option>
                     </select>
                 </div>
                 <div>
@@ -45,6 +47,7 @@
             <div>
                 <input id="submitQuery" type="button" value="Submit" />
                 <input id="showQuery" type="button" value="Show Query" onclick="toggle('txtQueryString');"/>
+                <input id="replaceQuery" disabled type="button" value="Grab Query from TimeSeries" onclick="showQueryFromBuffer()"/>
             </div>
             <div id="divStatusText" style="display: inline;"></div> 
         </div>
@@ -69,10 +72,18 @@ var myFields = {}
 var viewportBounds;
 var currentQuery = {};
 var boundSources = [];
+var bufferedQuery;
 
 // create HR object
 gadget.init = function(callback) {
     gadget.update = function(){};
+    
+    gadget.onNotification('queryUpdate', function(json) {
+            bufferedQuery = json['query'];
+            document.getElementById('replaceQuery').disabled = false;
+            console.log("query Updated " + bufferedQuery);
+    });
+    
     callback();
 }
 
@@ -82,6 +93,11 @@ gadget.saveState = function(){
 
 gadget.loadState = function(state){
 };
+
+function showQueryFromBuffer() {
+    console.log("replace query!");
+    $("#txtQueryString").html(bufferedQuery);
+}
 
 function toggle(id) {
     $element = $("#" + id);
@@ -120,6 +136,11 @@ function showStatus(iconUrl, text) {
 window.onload = function() {
     // Set Up Buttons
     $('#submitQuery').on("click", function() {
+        //showStatus(ICON_URL_SPINNER, "Processing Query...");
+        //gadget.resize();
+        //setTimeout('showStatus(ICON_URL_SUCCESS, "Query Complete.");', 5000);
+        //return;
+            
         var request = {};
         request['query'] =  $('#txtQueryString').attr('value');
         request['iterative'] = false;
@@ -136,7 +157,7 @@ window.onload = function() {
             contentType: "application/json",
             dataType: "jsonp",
             data: request,
-            beforeSend: function() { showStatus(ICON_URL_SPINNER, "Processing Query..."); },
+            beforeSend: function() { showStatus(ICON_URL_SPINNER, "Processing Query..."); gadget.resize();},
             error: function() { showStatus(ICON_URL_ERROR, "A network errored occured while processing the query."); },
             success: function(result) {
                 console.log("Received Result:");
@@ -144,7 +165,7 @@ window.onload = function() {
                 if (result['status'] === 'OK') {
                     showStatus(ICON_URL_SUCCESS, "Query Complete.");
                     
-                    gadget.notify('image_viewer', {'function': 'NEW', 'data': result});
+                    gadget.notify('loadFile', result['fits_file']);
                     
                 } else {
                     showStatus(ICON_URL_ERROR, "An errored occured while processing the query.");

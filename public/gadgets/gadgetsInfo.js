@@ -1,4 +1,11 @@
 var gadgets = {
+		ASCIIDataLoader: { 
+    name: "ASCII Data Loader",
+    fileName: "ASCIIDataLoader.html",
+    description: "Create DataSets from text files formatted into columns.",
+    author: "Spencer Wallace - spencerw@email.arizona.edu",
+    version: "0.1" 
+  },
   dataInquirer: { 
     name: "Data Inquirer",
     fileName: "dataInquirer.html",
@@ -74,6 +81,13 @@ var gadgets = {
     fileName: "timeSeries.html",
     description: "Displays Timeseries graphs, connected with astroJsFitsViewer to get boundaries from SciDB CoAdds",
     author: "Matthew Moyers - mmoyers@gmail.com",
+    version: "0.1"
+  },
+  tabbedFits: { 
+    name: "Tabbed Astro Fits Viewer",
+    fileName: "tabbedAstroJsFitsViewer.html",
+    description: "",
+    author: "",
     version: "0.1"
   }
   /*
