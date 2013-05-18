@@ -15,9 +15,7 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 <script src="/jquery.ui.slider.js" type="text/javascript"></script>
 <script src="/require.js" type="text/javascript"></script>
-<script src="/glfx.js" type="text/javascript"></script>
-<script src="/pngParser.js" type="text/javascript"></script>
-<script src="/fits.js" type="text/javascript"></script>
+<script src="/wcs.js" type="text/javascript"></script>
 <script src="/canvasAnnotator.js" type="text/javascript"></script>
 <script>
 
@@ -112,8 +110,7 @@ var config = {
         'coffee-script': '/coffee-script'
     }
 };
-require(config, ['fits','pngParser', '/binaryajax.js', 'canvasAnnotator', 'cs!/astroJS/display'], function(_fits, PNGParser, BinaryAjax, canvasAnnotator, _astroJsFits) {
-    fits = _fits;
+require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnotator, _astroJsFits) {
     astroJsFits = _astroJsFits;
     annotator = canvasAnnotator;
     
@@ -488,10 +485,7 @@ var handleMousemove = function(e) {
 }
 
 // Makes an AJAX request through the server and sends the result to the FITS parser to be displayed
-var imageFromUrl = function(path) {
-    imageFromSciDB();
-    return;
-    
+var imageFromUrl = function(path) {    
 	$('#init').hide();
 	gadget.resize();
 	if (path == "None")
@@ -517,39 +511,6 @@ var imageFromUrl = function(path) {
 		'url': '/xhrProxy/' + encodeURIComponent(path),
 		success: renderImage 
 	});
-}
-
-var imageFromSciDB = function() {
-    $('#init').hide();
-	gadget.resize();
-
-	var renderImage = function(response) {
-		// Need to convert the file to an arraybuffer to be read by astroJsFits
-        var reader = new FileReader();
-        reader.onload = function(event) {
-              var contents = event.target.result;
-              astroJsFits.init1(contents);
-              fitsHeader = astroJsFits.getHeader();
-              renderSuccess();
-        };
-        reader.onloadend = function(event) {
-            console.log("file hi");
-        }
-        reader.onloadstart = function(event) {
-            console.log("starting");
-        }
-        //reader.readAsArrayBuffer(response);
-        reader.readAsBinaryString(response);
-	}
-
-	$('#dropLabel').html('Loading file...');
-	$('#loadingBar').show();
-
-	$.ajax({
-		'url': "http://rio.cs.washington.edu:5550/get/54872d1b065d439aaca2e4b91a50c2ed.fits",
-		success: renderImage 
-	});
-    
 }
   
 // HTML controls
