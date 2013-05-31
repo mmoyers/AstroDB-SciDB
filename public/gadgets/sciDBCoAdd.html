@@ -25,7 +25,8 @@
                     <select id="tableName" style="margin-left: 16px" onchange="updateQuery()">
                         <option value="CCD">CCD</option>
                         <option value="CCDF_SAMPLE_SUB">CCDF_SAMPLE_SUB</option>
-                        <option value="CCD_DEMO">CCD_DEMO</option>
+                        <option value="CCD_DEMO2">CCD_DEMO2</option>
+                        <option value="CCDNEW">CCDNEW</option>
                     </select>
                 </div>
                 <div>
@@ -36,8 +37,14 @@
                 </div>
             </div>
             <div style="float: right; margin-left: 150px">
-                <input id="z_scale" type="checkbox" />Enable Sigma Cliping<br />
-                <input id="z_value" type="text" style="margin-left: 30px"/>
+                <input id="z_scale" type="checkbox" /><span>Sigma Cliping</span><input id="z_value" type="text" style="margin: 0px 0px 0px 30px"/><br />
+                <input id="boundingBox" type="checkbox" onchange="updateQuery()"/><span>Bounding Box</span>
+                <div style="margin: 0px 0px 0px 30px">
+                    <input id="ra_min" type="text" placeholder="ra min" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
+                    <input id="ra_max" type="text" placeholder="ra max" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/><br />
+                    <input id="dec_min" type="text" placeholder="dec min" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
+                    <input id="dec_max" type="text" placeholder="dec max" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
+                </div>
             </div>
         </div>
         <div>
@@ -55,6 +62,7 @@
 </body>
 <script src="http://code.jquery.com/jquery-1.8.1.min.js" type="text/javascript"></script>
 <script src="/util.js" type="text/javascript"></script>
+<script type="text/javascript" src="/astrojs/wcs.js"></script>
 <script type="text/javascript">
 
 var scidbServerAPI = "http://rio.cs.washington.edu:5551/"
@@ -95,8 +103,7 @@ gadget.loadState = function(state){
 };
 
 function showQueryFromBuffer() {
-    console.log("replace query!");
-    $("#txtQueryString").html(bufferedQuery);
+    document.getElementById('txtQueryString').value = bufferedQuery;
 }
 
 function toggle(id) {
@@ -117,9 +124,67 @@ function updateQuery() {
     var table = document.getElementById("tableName");
     var table_text = table.options[table.selectedIndex].text;
     
-    //select sum(data) from CCD group by row, col
+    var subtable_text;
     
-    $('#txtQueryString').text("select " + agg_text +  "(data) from " + table_text + " group by row, col");
+    if($("#boundingBox").attr("checked") == "checked") {
+        var ra_min = $("#ra_min").attr("value");
+        var dec_min = $("#dec_min").attr("value");
+        var ra_max = $("#ra_max").attr("value");
+        var dec_max = $("#dec_max").attr("value");
+        
+        var stg = {
+            "NAXIS": 2,
+            "NAXIS1": 4000,
+            "NAXIS2": 4000,
+            "CRPIX1": 392000,
+            "CRPIX2": 325345,
+            "CRVAL1": 60,
+            "CRVAL2": 10.81231696,
+            
+            "CUNIT1": 'deg     ',                                                            
+            "CUNIT2" : 'deg     ',
+            //"CDELT1": -0.00005555555556,
+            //"CDELT2": 0.00005555555556,
+            "CRVAL1A": 307750, // Column pixel of Reference Pixel                
+            "CRVAL2A": 275750, // Row pixel of Reference Pixel                   
+            "CRPIX1A": 1, // Column Pixel Coordinate of Reference           
+            "CRPIX2A": 1, // Row Pixel Coordinate of Reference              
+            "CTYPE1A": 'LINEAR  ',           // Type of projection                             
+            "CTYPE2A": 'LINEAR  ',           // Type of projection                             
+            "CUNIT1A": 'PIXEL   ',           // Column unit                                    
+            "CUNIT2A": 'PIXEL   ',           // Row unit
+
+            "LONPOLE": 180.0,
+            "LATPOLE": 10.81231696,
+            "CTYPE1": "RA---STG",
+            "CTYPE2": "DEC--STG",
+            
+            "CD1_1": -0.000055555555,
+            "CD1_2": 0,
+            "CD2_1": 0,
+            "CD2_2": 0.000055555555
+        };
+        var wcs = new WCS.Mapper(stg);
+        
+        // Sky to pixel transformation
+        var sky = [ra_min, dec_min];
+        var pix_min = wcs.coordinateToPixel(sky[0], sky[1]);
+        sky = [ra_max, dec_max];
+        var pix_max = wcs.coordinateToPixel(sky[0], sky[1]);
+        
+        table_text = "subarray(" + table_text + ", 0, " + 
+            parseInt(pix_min.x+308000) + ", " + parseInt(pix_min.y+276000) + ", 24, " + 
+            parseInt(pix_max.x+308000) + ", " + parseInt(pix_max.y+276000) + ")";
+    }
+    
+    document.getElementById('txtQueryString').value = "select " + agg_text +  "(data) from " + table_text + " group by row, col";
+    
+    //document.getElementById('txtQueryString').value = "store(project(aggregate(" + table_text + ", avg(data), stdev(data),row,col),data_avg,data_stdev),T)\n" +
+    //                 + "store(newextrusion(CCD_DEMO_SUB,T,CCD_DEMO_SUB.data <= (T.data_avg + 2 * T.data_stdev) and CCD_DEMO_SUB.data >= (T.data_avg - 2 * T.data_stdev)),temp)";
+
+    
+    //select sum(data) from CCD group by row, col
+    //store(project(aggregate(CCD_DEMO_SUB, avg(data), stdev(data),row,col),data_avg,data_stdev),T)
 }
 
 function showStatus(iconUrl, text) {
@@ -134,20 +199,20 @@ function showStatus(iconUrl, text) {
 }
 
 window.onload = function() {
+    $("#ra_min").attr("value", "81.13358");
+    $("#dec_min").attr("value", "-7.13935");
+    $("#ra_max").attr("value", "81.00277");
+    $("#dec_max").attr("value", "-7.00933");
+    
     // Set Up Buttons
     $('#submitQuery').on("click", function() {
-        //showStatus(ICON_URL_SPINNER, "Processing Query...");
-        //gadget.resize();
-        //setTimeout('showStatus(ICON_URL_SUCCESS, "Query Complete.");', 5000);
-        //return;
-            
         var request = {};
+        request['language'] = 'aql';
         request['query'] =  $('#txtQueryString').attr('value');
         request['iterative'] = false;
         request['iteration'] = 0;
         request['z_scale'] = $("#z_scale").attr("checked") == "checked";
         request['z_value'] = $("#z_value").attr("value");
-        request['language'] = 'aql';
         
         console.log('Sending Request:' + JSON.stringify(request));
         
@@ -165,7 +230,7 @@ window.onload = function() {
                 if (result['status'] === 'OK') {
                     showStatus(ICON_URL_SUCCESS, "Query Complete.");
                     
-                    gadget.notify('loadFile', result['fits_file']);
+                    gadget.notify('loadImageURL', scidbServerAPI + "get/" + result['fits_file']);
                     
                 } else {
                     showStatus(ICON_URL_ERROR, "An errored occured while processing the query.");

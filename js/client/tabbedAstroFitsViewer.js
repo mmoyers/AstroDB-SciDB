@@ -30,109 +30,51 @@ var EDIT_TYPE = {ADD: 1, REMOVE: 2, ZOOM: 3, PAN: 4, SELECT: 5};
 var ANNO_TYPE = {RECT: 1, CIRCLE: 2, POLY: 3, DATA: 4};
 var COORD_TYPE = {PIXEL: 1, WCS: 2};
 
-function TabState() {
-    // modules
-    this.annotator;
-    this.astroJsFits;
-    this.wcs;
-    
-    // Gadget state
-    this.savedImagePath;
-    this.showAnnotations = true;
-    this.imageLoaded = false;
-    this.leftMouseDown = false;
-    this.prevSelectedIndex = -1;
-    this.dragStart = {x: '', y: ''};
-    this.selectedCoordType = COORD_TYPE.WCS;
-    this.selectedEditType = EDIT_TYPE.PAN;
-    this.selectedAnnoType = ANNO_TYPE.CIRCLE;
-    this.polyCreateList = []
-    this.selectedDataSet;
-    this.selectedDataSetId = -1;
-    this.fitsHeader;
-    
-    // Canvases and attributes
-    this.display;
-    this.fitsCanvas;
-    this.annotatorCanvas;
-    this.editCanvas;
-    this.displayWidth;
-    this.displayHeight;
-    this.displayContext;
-    this.editContext;
-    this.imageDimensions;
-    
-}
-
-// modules
-var annotator;
-var astroJsFits;
-var wcs;
-
-// Gadget state
-var savedImagePath;
-var showAnnotations = true;
-var imageLoaded = false;
-var leftMouseDown = false;
-var prevSelectedIndex = -1;
-var dragStart = {x: '', y: ''};
-var selectedCoordType = COORD_TYPE.WCS;
-var selectedEditType = EDIT_TYPE.PAN;
-var selectedAnnoType = ANNO_TYPE.CIRCLE;
-var polyCreateList = [];
-var selectedDataSet;
-var selectedDataSetId = -1;
-var fitsHeader;
-
-// Canvases and attributes
-var display;
-
-var fitsCanvas;
+var selectedEditType;
+var mouseDown;
+var dragStart;
 var annotatorCanvas;
-var editCanvas;
 
-var displayWidth;
-var displayHeight;
-var displayContext;
-var editContext;
-var imageDimensions;
+function TabState() {
+    var file;
+    var wcs;
+    var webfits;
+}
 
 // Tab stuff
 var activeTabNumber = 0;
 var tabStates = new Array();
 
-gadget.saveState = function(){};
-gadget.loadState = function(state){
-	if (state) {
-		if (state.showAnnotations != undefined)
-			showAnnotations = state.showAnnotations;
-		$(getElement('showAnnotations')).prop('checked', showAnnotations);
-		savedImagePath = state.imagePath;
-		if (state.savedDataSetId !== undefined)
-			selectedDataSetId = state.savedDataSetId;
+gadget.saveState = function() {
+
+};
+gadget.loadState = function(state) {
+	if (!state) {
+	    return;
 	}
+	/*
+    if (state.showAnnotations != undefined) {
+        showAnnotations = state.showAnnotations;
+    }
+    $(getElement('showAnnotations')).prop('checked', showAnnotations);
+    savedImagePath = state.imagePath;
+    if (state.savedDataSetId !== undefined) {
+        selectedDataSetId = state.savedDataSetId;
+    }
+    */
 }
 
-gadget.init = function(finishedLoading){
+gadget.init = function(callback) {
 	initTabViewer(0);
 	initTabViewer(1);
 	
 	gadget.update = function() {};
+	
 	gadget.onNotification('dataSetChanged', dataSetChanged);
-	finishedLoading();
+	
+	callback();
 };
 
-var getActiveTabNumber = function() {
-    var tabs = $(".tab-pane.active");
-    for(var i = 0; i < tabs.length; i++) {
-        var tab = tabs[i];
-        if (tab.dataset["tab"]) {
-            return tab.dataset["tab"];
-        }
-    }
-    
-    return -1; // error no active tab
-}
 var getElement = function(id, tabNumber) {
     if (!tabNumber) {
         tabNumber = activeTabNumber;
@@ -149,48 +91,6 @@ var getElement = function(id, tabNumber) {
 var restoreTabState = function(tabNumber) {
     if (tabStates[tabNumber]) {
         var tabState = tabStates[tabNumber];
-        
-        // modules
-        astroJsFits = tabState.astroJsFits;
-        annotator = tabState.annotator;
-        wcs = tabState.wcs;
-        
-        // Gadget state
-        savedImagePath = tabState.savedImagePath;
-        showAnnotations = tabState.showAnnotations;
-        imageLoaded = tabState.imageLoaded;
-        leftMouseDown = tabState.leftMouseDown;
-        prevSelectedIndex = tabState.prevSelectedIndex;
-        dragStart = tabState.dragStart;
-        selectedCoordType = tabState.selectedCoordType;
-        selectedEditType = tabState.selectedEditType;
-        selectedAnnoType = tabState.selectedAnnoType;
-        polyCreateList = tabState.polyCreateList;
-        selectedDataSet = tabState.selectedDataSet;
-        selectedDataSetId = tabState.selectedDataSetId;
-        fitsHeader = tabState.fitsHeader;
-        
-        // Canvases and attributes
-        display = tabState.display;
-        fitsCanvas = tabState.fitsCanvas;
-        annotatorCanvas = tabState.annotatorCanvas;
-        editCanvas = tabState.editCanvas;
-        displayWidth = tabState.displayWidth;
-        displayHeight = tabState.displayHeight;
-        displayContext = tabState.displayContext;
-        editContext = tabState.editContext;
-        imageDimensions = tabState.imageDimensions;
-        
-        $(getElement("dropbox", tabNumber)).on("dragenter", noopHandler);
-        $(getElement("dropbox", tabNumber)).on("dragexit", noopHandler);
-        $(getElement("dropbox", tabNumber)).on("dragover", noopHandler);
-        
-        $(getElement("canvasArea", tabNumber)).on("mousedown", handleMousedown);
-        $(getElement("canvasArea", tabNumber)).on("mouseup", handleMouseup);
-        $(getElement("canvasArea", tabNumber)).on("mousemove", handleMousemove);
-        $(getElement("canvasArea", tabNumber)).on("mouseout", handleMouseout);
-        
-        $(getElement("display", tabNumber)).on("mousewheel", handleMousewheel);
     } else {
         console.log("Tab state not found for tab " + tabNumber);
     }
@@ -200,48 +100,7 @@ var restoreTabState = function(tabNumber) {
 var saveTabState = function(tabNumber) {
     if (tabStates[tabNumber]) {
         var tabState = tabStates[tabNumber];
-        
-        // modules
-        tabState.astroJsFits = astroJsFits;
-        tabState.annotator = annotator;
-        tabState.wcs = wcs;
 
-        // Gadget state
-        tabState.savedImagePath = savedImagePath;
-        tabState.showAnnotations = showAnnotations;
-        tabState.imageLoaded = imageLoaded;
-        tabState.leftMouseDown = leftMouseDown
-        tabState.prevSelectedIndex = prevSelectedIndex;
-        tabState.dragStart = dragStart;
-        tabState.selectedCoordType = selectedCoordType;
-        tabState.selectedEditType = selectedEditType;
-        tabState.selectedAnnoType = selectedAnnoType;
-        tabState.polyCreateList = polyCreateList;
-        tabState.selectedDataSet = selectedDataSet;
-        tabState.selectedDataSetId = selectedDataSetId;
-        tabState.fitsHeader = fitsHeader;
-        
-        // Canvases and attributes
-        tabState.display = display;
-        tabState.fitsCanvas = fitsCanvas;
-        tabState.annotatorCanvas = annotatorCanvas;
-        tabState.editCanvas = editCanvas;
-        tabState.displayWidth = displayWidth;
-        tabState.displayHeight = displayHeight;
-        tabState.displayContext = displayContext;
-        tabState.editContext = editContext;
-        tabState.imageDimensions = imageDimensions;
-        
-        $(getElement("dropbox", tabNumber)).off("dragenter");
-        $(getElement("dropbox", tabNumber)).off("dragexit");
-        $(getElement("dropbox", tabNumber)).off("dragover");
-        
-        $(getElement("canvasArea", tabNumber)).off("mousedown");
-        $(getElement("canvasArea", tabNumber)).off("mouseup");
-        $(getElement("canvasArea", tabNumber)).off("mousemove");
-        $(getElement("canvasArea", tabNumber)).off("mouseout");
-        
-        $(getElement("display", tabNumber)).off("mousewheel");
     } else {
         console.log("Unable to save tab state for tab " + tabNumber);
     }
@@ -252,102 +111,71 @@ var createNewTab = function() {
     
 }
 
-// Initalize the fits tab viewer, called when the gadget is initalized
+// Initalizes a Tab with default options
 var initTabViewer = function(tabNumber) {
     if (!tabStates[tabNumber]) {
         tabStates[tabNumber] = new TabState();
     }
     
-    var tabState = tabStates[tabNumber];
-    // Set configuration options for requirejs
-    var config = {
-        paths: {
-            'cs': '/cs',
-            'coffee-script': '/coffee-script'
-        }
-    };
-    require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnotator, _astroJsFits) {
-        tabState.astroJsFits = _astroJsFits;
-        tabState.annotator = canvasAnnotator;
-        
-        tabState.showAnnotations = true;
-        tabState.imageLoaded = false;
-        tabState.leftMouseDown = false;
-        tabState.prevSelectedIndex = -1;
-        tabState.dragStart = {x: '', y: ''};
-        tabState.selectedCoordType = COORD_TYPE.WCS;
-        tabState.selectedEditType = EDIT_TYPE.PAN;
-        tabState.selectedAnnoType = ANNO_TYPE.CIRCLE;
-        tabState.polyCreateList = []
-        tabState.selectedDataSetId = -1;
-        
-        if (activeTabNumber == tabNumber) {
-            restoreTabState(tabNumber);
-        }
-        
-        // Load an image from URL when 'Fetch' is clicked
-        $(getElement('fetchURL')).click(function() {
-            imageFromUrl($(getElement('imageURL')).val());
-        });
-        
-        // Load an image from the server when one is selected from the 'remote files' dropdown box
-        var imageList = $(getElement("sampleImageSelect", tabNumber));
-        $.each(imageFiles, function() {
-                imageList.append($("<option />").val(this.path).text(this.name));
-        });
-        imageList.change(function() {
-                gadget.setState({ imagePath : $(this).val()});
-                imageFromUrl($(this).val());
-        });
-        
-        var stretchSelect = $(getElement("stretchSelect", tabNumber));
-        $.each(stretchOptions, function() {
-            stretchSelect.append($("<option />").val(this).text(this));
-        });
-        
-        // Construct the dropdown box for the selection colors
-        var colorSelect = $(getElement("selectionColorSelect", tabNumber));
-        var items = ["red", "green", "blue", "yellow", "unselect"];
-        $.each(items, function(index, value) {
-                colorSelect.append($("<option />").val(value).text(value));
-        });
-  
-        // Bring up an existing image if one is saved to the dashboard state
-        if (savedImagePath != undefined)
-            imageFromUrl(savedImagePath);
+    $(getElement("loadingImage", tabNumber)).hide();
+    $(getElement("showImage", tabNumber)).hide();
+    $(getElement("imageControlContainer", tabNumber)).hide();
     
-        console.log("Tab init " + tabNumber);
-  });
+    // Load an image from the server when one is selected from the 'remote files' dropdown box
+    var imageList = $(getElement("loadFromServer", tabNumber));
+    $.each(imageFiles, function() {
+        imageList.append($("<option />").val(this.path).text(this.name));
+    });
+    
+    var stretchSelect = $(getElement("stretchSelect", tabNumber));
+    $.each(stretchOptions, function() {
+        stretchSelect.append($("<option />").val(this).text(this));
+    });
+    
+    // Construct the dropdown box for the selection colors
+    var colorSelect = $(getElement("selectionColorSelect", tabNumber));
+    var items = ["red", "green", "blue", "yellow", "unselect"];
+    $.each(items, function(index, value) {
+        colorSelect.append($("<option />").val(value).text(value));
+    });
+    
+    $(".annoContorls").position({
+        my: "center",
+        at: "center",
+        of: "body"
+    });
+    
+    $(getElement("addControls", tabNumber)).hide();
+    $(getElement("selectControls", tabNumber)).hide();
+    $(getElement("removeControls", tabNumber)).hide();
+  
+    // Bring up an existing image if one is saved to the dashboard state
+//        if (savedImagePath != undefined)
+//            loadFromUrl(savedImagePath);
+    
+    console.log("Tab init " + tabNumber);
 }
 
-// Create and set canvas attributes; The annotator canvas
-// is used for drawing annotations; The edit canvas is used for drawing edit marks like selection boxes and
-// the display canvas is the surface onto which the other canvases are displayed
-var initCanvases = function() {
-    display = getElement('display');
-    var canvasArea = getElement('canvasArea');
+// Called when the user clicks 'unload image'
+// Sets the gadget back to its initial blank state
+var clickUnloadImage = function(tabNumber) {
+    if (!tabNumber) {
+	    tabNumber = activeTabNumber;
+	}
+	
+	$(getElement("showImage", tabNumber)).html("");
+	
+    $(getElement("noImage", tabNumber)).show();
+    $(getElement("loadImageControls", tabNumber)).show();
+    $(getElement("showImage", tabNumber)).hide();
+    $(getElement("imageControlContainer", tabNumber)).hide();
     
-    display.width = canvasArea.offsetWidth;
-    display.height = canvasArea.offsetHeight;
-    displayContext = display.getContext('2d');
-    displayWidth = display.width;
-    displayHeight = display.height;
-    
-    annotatorCanvas = document.createElement('canvas');
-    annotatorCanvas.setAttribute('width', displayWidth);
-    annotatorCanvas.setAttribute('height', displayHeight);
-    
-    editCanvas = document.createElement('canvas');
-    editCanvas.setAttribute('width', displayWidth);
-    editCanvas.setAttribute('height', displayHeight);
-    
-    editContext = editCanvas.getContext('2d');
-    editContext.fillStyle = "white";
-    editContext.globalAlpha = 0.5;
+    gadget.resize();
 }
 
 // Send a file object to the FITS parser to be displayed
-var renderFile = function(file) {
+/*
+var loadFromFile = function(file) {
 	$(getElement('init')).hide();
 	gadget.resize();
 	$(getElement('dropLabel')).html('Loading file...');
@@ -363,85 +191,299 @@ var renderFile = function(file) {
 	};
 	reader.readAsArrayBuffer(file);
 }
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
 
-var setImageExtremes = function(lower, upper) {
-	astroJsFits.changeExtremes(lower, upper);
-  draw();
-}
-
-// Executes after a FITS file is successfully loaded
-var renderSuccess = function(){
-    $(getElement('dropLabel')).hide();
-    $(getElement('loadingBar')).hide();
-    $(getElement('fitsCanvas')).show();
-    $(getElement('display')).show();
-    $(getElement('annoControlsContainer')).show();
-    $(getElement('slidersList')).show();
-    $(getElement('upperControls')).show();
-    
-    gadget.resize();
-    imageLoaded = true;
+// Loads Fits file from a URL
+var loadFromUrl = function(path, tabNumber) {
+    if (!path || path == "None") {
+		return;
+	}
+    if (!tabNumber) {
+	    tabNumber = activeTabNumber;
+	}
 	
-	
-    // Ensure that the aspect ratio of the fits canvas matches the aspect ratio of the image
-    imageDimensions = {width: fitsHeader.get("NAXIS1")[1], height: fitsHeader.get("NAXIS2")[1]};
-    var rat = imageDimensions.width/imageDimensions.height;
-    var canvasWidth = $(getElement('dropbox')).width();
-    $(getElement('dropbox')).height(canvasWidth*rat);
+    $(getElement("noImage", tabNumber)).hide();
+    $(getElement("loadImageControls", tabNumber)).hide();
+    $(getElement("loadingImage", tabNumber)).show();
+	gadget.resize();
     
-    displayWidth = $(getElement('display')).width();
-    displayHeight = $(getElement('display')).height();
-    initCanvases();
-    astroJsFits.init2($(getElement('display')), $(getElement('display')).width(), $(getElement('display')).height());
-    
-    fitsCanvas = astroJsFits.getCanvas();
-    annotatorCanvas.setAttribute('height', $(getElement('display')).height());
-    editCanvas.setAttribute('height', $(getElement('display')).height());
-    annotator.init(annotatorCanvas, astroJsFits.pixToScreen, showAnnotations);
-  
-    // Initalize the wcsjs module
-    wcs = new WCS.Mapper(fitsHeader);
-    // Send the image boundaries to the dashboard
-    var topLeft = wcs.pixelToCoordinate([parseFloat(imageDimensions.width), parseFloat(imageDimensions.height)]);
-    var bottomRight = wcs.pixelToCoordinate([0, 0]);
-    var curBounds = { 
-                    topLeft: {ra: topLeft.ra, dec: topLeft.dec },
-                    bottomRight: {ra: bottomRight.ra, dec: bottomRight.dec}
+    var options = {
+        tabNumber: tabNumber
     };
     
-    if (curBounds.topLeft.ra > curBounds.bottomRight.ra) {
-        var a = curBounds.topLeft.ra;
-        curBounds.topLeft.ra = curBounds.bottomRight.ra;
-        curBounds.bottomRight.ra = a;
-    }
-    if (curBounds.topLeft.dec < curBounds.bottomRight.dec) {
-        var a = curBounds.topLeft.dec;
-        curBounds.topLeft.dec = curBounds.bottomRight.dec;
-        curBounds.bottomRight.dec = a;
-    }
+    var file = new astro.FITS.File(path, getImage, options);
+}
+
+// Define callback to be executed after image is received from the server
+var getImage = function (file, options) {
+    // Get first data unit
+    var dataunit = file.getDataUnit();
+    options.dataunit = dataunit;
     
-    gadget.notify('viewBoundsChanged', {'bounds': curBounds, 'source': 'fitsViewer'});
+    // Asynchronously get pixels representing the image
+    dataunit.getFrameAsync(0, createVisualization, options);
     
-    // Load up a dataset if one was saved
-    if (selectedDataSetId != -1)
-        addDataSetPoints();
+    // WCS
+    //TODO: get header info from file object
+    var header = {
+        'WCSAXES': 2,
+		'NAXIS1': 3600,
+		'NAXIS2': 3600,
+		'CRPIX1': 1801,
+		'CRPIX2': 1801,
+		'CD1_1': -2.4763600114e-05,
+		'CD1_2': -1.0252035064e-08,
+		'CD2_1': 2.0179923602e-08,
+		'CD2_2': 2.476824249e-05,
+		'CRVAL1': 15.7305338,
+		'CRVAL2': -49.2609679,
+		'CTYPE1': 'RA---TAN',
+		'CTYPE2': 'DEC--TAN',
+		'CUNIT1': 'deg',
+		'CUNIT2': 'deg'
+    };
     
-    // Add the scaling slider
-    var extremes = astroJsFits.getImageExtremes();
+    var wcs = new WCS.Mapper(header);
+    
+    var tabState = tabStates[options.tabNumber];
+    tabState.file = file;
+    tabState.wcs = wcs;
+}
+
+// Define callback for when pixels have been read from file
+var createVisualization = function (array, options) {
+    var dataunit = options.dataunit;
+    var tabNumber = options.tabNumber;
+    
+    var width = dataunit.width;
+    var height = dataunit.height;
+    var extent = dataunit.getExtent(array);
+    
+    // Get the DOM element
+    var el = getElement("showImage", tabNumber);
+    
+    // Initialize the WebFITS context
+    var webfits = new astro.WebFITS(el, width);
+    
+    // Add mouse controls
+    var opts = {arr: array, width: width};
+    var callbacks = {
+      onmousedown: onmousedown,
+      onmouseup: onmouseup,
+      onmousemove: onmousemove,
+      onmouseout: onmouseout,
+      onmouseover: onmouseover
+    };
+    webfits.setupControls(callbacks, opts);
+    
+    // Load image from fitsjs
+    webfits.loadImage('some-identifier', array, width, height);
+    webfits.setExtent(extent[0], extent[1]);
+    webfits.setStretch('linear');
+    
+    $(getElement("loadingImage", tabNumber)).hide();
+    $(getElement("showImage", tabNumber)).show();
+    $(getElement("imageControlContainer", tabNumber)).show();
+    
+    // scaling slider
     $(getElement("scalingSlider")).slider({
         range: true,
-        min: extremes.minimum,
-        max: extremes.maximum,
-        values: [extremes.minimum, extremes.maximum],
+        min: extent[0],
+        max: extent[1],
+        values: [extent[0], extent[1]],
         slide: function(event, ui) {
             var lo = parseInt($(getElement("scalingSlider")).slider("values", 0));
             var hi = parseInt($(getElement("scalingSlider")).slider("values", 1));
-            setImageExtremes(lo, hi);
+            webfits.setExtent(lo, hi);
         }
     });
-    gadget.resize();
-    draw();
-};
+    
+    // stretch
+    $(getElement("stretchSelect")).on("change", function() {
+            webfits.setStretch(this.options[this.selectedIndex].value);
+    });
+    
+    $(getElement("canvas")).height(height);
+    $(getElement("canvas")).width(width);
+    getElement("showImage").style.backgroundColor = "transparent";
+    
+    //////////////////////////////////////////////////////////////////////////////7
+
+    
+    var zoom = d3.behavior.zoom()
+	.on("zoom", function() {
+	        /*
+	    console.log(d3.event.scale, d3.event.translate);
+        d3.selectAll("circle") // svg elements have the transform="" attribute
+            .attr("transform", function(d,i) {
+                        return "scale("+d3.event.scale+")"
+                + "translate("+d3.event.translate+")" //2elm array.
+            })
+        d3.selectAll("canvas") // html elements can use css3. must specify "px" or other
+            .style("transform", function(d,i) { // firefox
+                        return "scale("+d3.event.scale+","+d3.event.scale+")"
+                + "translate("+d3.event.translate[0]+"px,"+d3.event.translate[1]+"px)"
+            })
+            .style("-webkit-transform", function(d,i) { //  chrome
+                        return "scale("+d3.event.scale+","+d3.event.scale+")"
+                + "translate("+d3.event.translate[0]+"px,"+d3.event.translate[1]+"px)"
+            })
+            */
+          var factor;
+          factor = e.shiftKey ? 1.01 : 1.1;
+          this.zoom *= (e.wheelDelta || e.deltaY) < 0 ? 1 / factor : factor;
+          this.zoom = this.zoom > this.maxZoom ? this.maxZoom : this.zoom;
+          this.zoom = this.zoom < this.minZoom ? this.minZoom : this.zoom;
+          return typeof this.zoomCallback === "function" ? this.zoomCallback() : void 0;
+	});
+
+    
+    // Without this, the image starts as tranaslated down by its height.
+    var canvas =d3.select("canvas").style("-webkit-transform","translate(0px,0px)");
+    
+    // binding two initial data to the svg
+    var svg =d3.select("#wicked-science-visualization").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g") //creating svg group to bring them all
+        .call(zoom);     // calling the zoom function previously defined
+
+    svg.append("rect") // without the rectangle, I cannot drag/zoom the group
+    	.attr("width",width)
+    	.attr("height",height)
+    	.attr("fill","orange")
+    	.attr("fill-opacity",0); // almost invisible
+
+    svg.append("circle") // some circle
+        .attr("cx",100)
+        .attr("cy",10)
+        .attr("r",6)
+        .attr("fill","red");
+
+    svg.append("circle")
+        .attr("cx",width/2)
+        .attr("cy",height/2)
+        .attr("r",6)
+        .attr("fill","red");
+
+    svg.append("circle")
+        .attr("cx",30)
+        .attr("cy",40)
+        .attr("r",6)
+        .attr("fill","green");
+
+	//////////////////////////////////////////////////////////////////////////////7
+	
+	/*
+	var annotatorCanvas = document.createElement('canvas');
+	annotatorCanvas.setAttribute('width', width);
+	annotatorCanvas.setAttribute('height', height);
+	
+    var ann_context = annotatorCanvas.getContext("2d");
+    ann_context.fillStyle = "#FF0000";
+    ann_context.fillRect(50, 25, 150, 100);
+    
+    $(getElement("showImage")).append(annotatorCanvas);
+	*/
+	gadget.resize();
+}
+
+var onmousedown = function(array, event) {
+    console.log('onmousedown');
+    
+    mouseDown = true;
+    
+    if (selectedEditType == EDIT_TYPE.ADD || selectedEditType == EDIT_TYPE.SELECT) {
+		dragStart = {x: e.offsetX, y: e.offsetY};
+	}
+	
+	if(selectedEditType != EDIT_TYPE.PAN) {
+	    return true;
+	}
+}
+
+var onmouseup = function(array) {
+    console.log('onmouseup');
+    
+    mouseDown = false;
+    
+    if(selectedEditType != EDIT_TYPE.PAN) {
+	    return true;
+	}
+}
+
+var onmousemove = function(x, y, options) {
+    console.log('onmousemove');
+    var array = options.arr;
+    var width = options.width;
+
+    // Update pixel readout
+    var wcs = tabStates[activeTabNumber].wcs;
+    if(wcs) {
+        var wcsPoint = wcs.pixelToCoordinate([x, y]);
+        getElement("alpha").innerHTML = wcsPoint.ra.toFixed(5);
+        getElement("delta").innerHTML = wcsPoint.dec.toFixed(5);
+    }
+    getElement("xPix").innerHTML = x;
+    getElement("yPix").innerHTML = y;
+    var pixValue = array[y*width + x];
+    if(pixValue) {
+        getElement("pixValue").innerHTML = pixValue.toFixed(8);
+    }
+    
+    if (mouseDown) {
+		if (selectedEditType == EDIT_TYPE.ADD || selectedEditType == EDIT_TYPE.SELECT) {
+			editContext.clearRect(0,0,$('#dropbox').width(),$('#dropbox').height());
+			editContext.fillStyle = "#ffffff";
+			editContext.globalAlpha = 0.3;
+			if (selectedAnnoType == ANNO_TYPE.RECT || selectedEditType == EDIT_TYPE.SELECT) {
+				editContext.fillRect(dragStart.x, dragStart.y, e.offsetX-dragStart.x, e.offsetY-dragStart.y);
+			} else if (selectedAnnoType == ANNO_TYPE.CIRCLE && selectedEditType != EDIT_TYPE.SELECT) {
+				editContext.beginPath();
+				editContext.arc(dragStart.x	, dragStart.y, Math.abs(e.offsetX-dragStart.x), 0, 2 * Math.PI, false);
+				editContext.fill();
+			}
+		}
+	}
+	
+	if(selectedEditType != EDIT_TYPE.PAN) {
+	    return true;
+	}
+}
+
+var onmouseout = function(array) {
+    console.log('onmouseout');
+}
+
+var onmouseover = function(array) {
+    console.log('onmouseover');
+}
+
+var changeAnnotation = function(editType) {
+	$(getElement("addControls")).hide();
+	$(getElement("removeControls")).hide();
+	$(getElement("selectControls")).hide();
+	
+	selectedEditType = editType;
+	
+    switch (editType) {
+		case EDIT_TYPE.ADD:
+			$(getElement("addControls")).show();
+			break;
+		case EDIT_TYPE.REMOVE:
+			$(getElement("removeControls")).show();
+			break;
+		case EDIT_TYPE.ADD:
+			$(getElement("selectControls")).show();
+			break;
+	}
+	
+	gadget.resize();
+}
+
+
+
 
 // Draw the fits image, annotations, and edit marks
 var draw = function() {
@@ -530,7 +572,6 @@ var populateDataSetSelect = function() {
 }
 
 // Event handlers for the canvases
-
 var handleMousedown = function(e) {
 	if (!imageLoaded)
 		return;
@@ -584,7 +625,8 @@ var handleMouseup = function(e) {
 	var evObj = document.createEvent('MouseEvents');
 	evObj.initMouseEvent( 'mouseup', false, true, window, 1, e.screenX, e.screenY, e.clientX, e.clientY, false, false, true, false, 0, null );
 	// Only notify the fits canvas of the mouse event if we are in pan mode
-	if (selectedEditType == EDIT_TYPE.PAN) fitsCanvas.dispatchEvent(evObj);
+	if (selectedEditType == EDIT_TYPE.PAN) 
+	    fitsCanvas.dispatchEvent(evObj);
 
 	leftMouseDown = false;
 	finishDrag(e);
@@ -652,56 +694,6 @@ var handleMousemove = function(e) {
 	else
 		annotator.handleMousemove(e);
 	draw();
-}
-
-// Makes an AJAX request through the server and sends the result to the FITS parser to be displayed
-var imageFromUrl = function(path) {
-	$(getElement('init')).hide();
-	gadget.resize();
-	if (path == "None")
-		return;
-    
-	// Send an http response to the FITS parser to be displayed
-	var renderImage = function(response) {
-		// convert string object into a binary object
-		var byteArray = new Uint8Array(response.length);
-		for (var i = 0; i < response.length; i++) {
-				byteArray[i] = response.charCodeAt(i) & 0xff;
-		}
-		
-		astroJsFits.init1(byteArray.buffer);
-		fitsHeader = astroJsFits.getHeader();
-		renderSuccess();
-	}
-
-	$(getElement('dropLabel')).html('Loading file...');
-	$(getElement('loadingBar')).show();
-
-	$.ajax({
-		'url': '/xhrProxy/' + encodeURIComponent(path),
-		success: renderImage 
-	});
-}
-
-// Called when the user clicks 'unload image'
-// Sets the gadget back to its initial blank state
-var clickUnloadImage = function() {
-	$(getElement("dropLabel")).show(); 
-	$(getElement("dropLabel")).html('No image loaded');
-    $(getElement("loadingBar")).hide();
-    $(getElement('sampleImageSelect'))[0].selectedIndex = 0;
-    $(getElement("init")).show();
-    $(getElement("upperControls")).hide();
-    $(getElement("annoControlsContainer")).hide();
-    $(getElement("slidersList")).hide();
-    
-    fitsCanvas.style.display = 'none';
-    display.style.display = 'none';
-    gadget.resize();
-    
-    gadget.setState({ annoObject : undefined});
-    gadget.setState({ imagePath : undefined});
-    imageLoaded = false;
 }
 
 var clickRadioAdd = function() {
@@ -917,12 +909,12 @@ var addDataSetPoints = function() {
   draw();
 }
 
-//window.onload = function() {
 $(document).ready(function() {
     $( "#tabs" ).tabs(
         {
             beforeActivate: function(event, ui) {
                 gadget.resize();
+
                 saveTabState(activeTabNumber);
                 activeTabNumber = ui.newTab.index();
                 restoreTabState(activeTabNumber);
@@ -931,6 +923,42 @@ $(document).ready(function() {
             }
         }
     );
+    
+    $(document).on("click", ".loadFromUrl",  
+        function(event) {
+            //loadFromUrl($(getElement("imageUrl")).val());
+            
+            var path = "http://rio.cs.washington.edu:5551/get/m101_r.fits";
+            loadFromUrl(path);
+        }
+    );
+    
+    $(document).on("change", ".loadFromServer",  
+        function(event) {
+            loadFromUrl($(this).val());
+        }
+    );
+    
+    $(document).on("change", ".loadFromFile",  
+        function(event) {
+            loadFromFile(this.files[0]);
+        }
+    );
+    
+    $(document).on("click", ".unloadImage",  
+        function(event) {
+            clickUnloadImage();
+        }
+    );
+    
+    $(document).on("change", ".stretchSelect",  
+        function(event) {
+            stretchSelectChange();
+        }
+    );
+    
+    
+    
     gadget.resize();
-}); // End of onload
+});
 

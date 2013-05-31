@@ -98,6 +98,12 @@ gadget.init = function(finishedLoading){
 	initViewer();
 	gadget.update = function() {};
 	gadget.onNotification('dataSetChanged', dataSetChanged);
+	gadget.onNotification('loadImageURL', function(path) {
+	        if(imageLoaded) {
+	            clickUnloadImage();
+	        }
+	        imageFromUrl(path);
+	});
   finishedLoading();
 };
 
@@ -118,17 +124,17 @@ require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnot
     initHTMLControls();
     
     $('#dropbox').on("dragenter", noopHandler);
-		$('#dropbox').on("dragexit", noopHandler);
-		$('#dropbox').on("dragover", noopHandler);
+    $('#dropbox').on("dragexit", noopHandler);
+    $('#dropbox').on("dragover", noopHandler);
     $('#canvasArea').on('mousedown', handleMousedown);
-		$('#canvasArea').on('mouseup', handleMouseup);
-		$('#canvasArea').on('mousemove', handleMousemove);
-		$('#canvasArea').on('mouseout', handleMouseout);
-		$('#display').on('mousewheel', handleMousewheel);
+    $('#canvasArea').on('mouseup', handleMouseup);
+    $('#canvasArea').on('mousemove', handleMousemove);
+    $('#canvasArea').on('mouseout', handleMouseout);
+    $('#display').on('mousewheel', handleMousewheel);
 		
-		// Bring up an existing image if one is saved to the dashboard state
-		if (savedImagePath != undefined)
-			imageFromUrl(savedImagePath);
+    // Bring up an existing image if one is saved to the dashboard state
+    if (savedImagePath != undefined)
+        imageFromUrl(savedImagePath);
 
     // fits.onHoverPixelChanged = function(pixelInfo){
     //   var x = document.getElementById("xCoordinate");
@@ -147,23 +153,23 @@ require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnot
 // the display canvas is the surface onto which the other canvases are displayed
 var initCanvases = function() {
 	display = document.getElementById('display');
-  var canvasArea = document.getElementById('canvasArea');
+	var canvasArea = document.getElementById('canvasArea');
 	
-	display.width = canvasArea.offsetWidth;
-	display.height = canvasArea.offsetHeight;
-  displayContext = display.getContext('2d');
-  displayWidth = display.width;
-  displayHeight = display.height;
+    display.width = canvasArea.offsetWidth;
+    display.height = canvasArea.offsetHeight;
+    displayContext = display.getContext('2d');
+    displayWidth = display.width;
+    displayHeight = display.height;
   
-  annotatorCanvas = document.createElement('canvas');
-  annotatorCanvas.setAttribute('width', displayWidth);
-  annotatorCanvas.setAttribute('height', displayHeight);
-  editCanvas = document.createElement('canvas');
-  editCanvas.setAttribute('width', displayWidth);
-  editCanvas.setAttribute('height', displayHeight);
-  editContext = editCanvas.getContext('2d');
-  editContext.fillStyle = "white";
-  editContext.globalAlpha = 0.5;
+    annotatorCanvas = document.createElement('canvas');
+    annotatorCanvas.setAttribute('width', displayWidth);
+    annotatorCanvas.setAttribute('height', displayHeight);
+    editCanvas = document.createElement('canvas');
+    editCanvas.setAttribute('width', displayWidth);
+    editCanvas.setAttribute('height', displayHeight);
+    editContext = editCanvas.getContext('2d');
+    editContext.fillStyle = "white";
+    editContext.globalAlpha = 0.5;
 }
 
 // Send a file object to the FITS parser to be displayed
@@ -187,10 +193,11 @@ var renderFile = function(file) {
 
 // Makes an AJAX request through the server and sends the result to the FITS parser to be displayed
 var imageFromUrl = function(path) {
+    if (path == "None")
+		return;
+	
 	$('#init').hide();
 	gadget.resize();
-	if (path == "None")
-		return;
 		
 	// Send an http response to the FITS parser to be displayed
 	var renderImage = function(response) {
@@ -319,7 +326,6 @@ var selectAnnotations = function(start, end) {
 		return;
 	setTimeout(function() { selectedDataSet.setRecords({'color': colorName}, idsToColor); }, .1);
 }
-
 // If a dataset is selected, sync the color of the annotations up with the 
 // color of the points in the dataset
 var updateSelectedPoints = function() {

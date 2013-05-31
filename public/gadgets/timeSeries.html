@@ -133,8 +133,8 @@ var test_result = {
 };
 
 function generateLightCurveQuery() {
-    var genQuery = "select sum(data) from subarray(CCD_DEMO, " + bounds.x + ", " + bounds.y + ",0 ," + (bounds.x+bounds.width) + ", "  + (bounds.y+bounds.height) + ", 30) group by time";
-    $("#txtQueryString").html(genQuery);
+    var genQuery = "select sum(data) from subarray(CCDNEW, 0, " + bounds.x + ", " + bounds.y + " , 24, " + (bounds.x+bounds.width) + ", "  + (bounds.y+bounds.height) + ") group by time";
+    document.getElementById("txtQueryString").value = genQuery;
 }
 
 function generateCoAddQuery() {
@@ -158,10 +158,6 @@ function generateCoAddQuery() {
 }
  
 function executeTimeSeries() {
-    //showStatus(ICON_URL_SPINNER, "Processing Time Series...");
-    //setTimeout('draw_timeseries(test_result["data"]);showStatus(ICON_URL_SUCCESS, "Time Series Complete.");', 100);
-    //return;
-    
     var request = { 'query': $('#txtQueryString').attr('value') };
 
     if($('#afl').attr('checked')) {
