@@ -1,4 +1,11 @@
 var gadgets = {
+		ASCIIDataLoader: { 
+    name: "ASCII Data Loader",
+    fileName: "ASCIIDataLoader.html",
+    description: "Create DataSets from text files formatted into columns.",
+    author: "Spencer Wallace - spencerw@email.arizona.edu",
+    version: "0.1" 
+  },
   dataInquirer: { 
     name: "Data Inquirer",
     fileName: "dataInquirer.html",
@@ -62,6 +69,27 @@ var gadgets = {
     author: "Ian Smith - imsmith@uw.edu",
     version: "0.1"
   },
+  sciDBCoAdd: { 
+    name: "SciDB CoAdd",
+    fileName: "sciDBCoAdd.html",
+    description: "Builds and Executes CoAdd queries against SciDB, sends results to astroJsFitsViewer in the form of a fits file",
+    author: "Matthew Moyers - mmoyers@gmail.com",
+    version: "0.1"
+  },
+  sciDBTimeseries: { 
+    name: "SciDB Light Curve",
+    fileName: "timeSeries.html",
+    description: "Displays Timeseries graphs, connected with astroJsFitsViewer to get boundaries from SciDB CoAdds",
+    author: "Matthew Moyers - mmoyers@gmail.com",
+    version: "0.1"
+  },
+  tabbedFits: { 
+    name: "Tabbed Astro Fits Viewer",
+    fileName: "tabbedAstroJsFitsViewer.html",
+    description: "",
+    author: "",
+    version: "0.1"
+  }
   /*
   fitsViewer_PDR: { 
     name: "Fits Viewer PDR",
@@ -70,20 +98,6 @@ var gadgets = {
     author: "Diego Marcos - diego.marcos@gmail.com, Spencer Wallace - spencerw@email.arizona.edu",
     version: "0.1"
   },*/
-   timeSeriesInquirer: { 
-    name: "SciDB Time Series",
-    fileName: "timeSeries.html",
-    description: "Create and Execute timeseries quieres to SciDB",
-    author: "Matthew Moyers",
-    version: "0.1"
-  },
-  SciDBCoAdd: { 
-    name: "SciDB CoAdd",
-    fileName: "sciDBCoAdd.html",
-    description: "Create and Execute CoAdd Quieres to SciDB",
-    author: "Matthew Moyers",
-    version: "0.1"
-  }
 }
 
 module.exports.all = gadgets;

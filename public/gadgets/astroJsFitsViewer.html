@@ -98,6 +98,12 @@ gadget.init = function(finishedLoading){
 	initViewer();
 	gadget.update = function() {};
 	gadget.onNotification('dataSetChanged', dataSetChanged);
+	gadget.onNotification('loadImageURL', function(path) {
+	        if(imageLoaded) {
+	            clickUnloadImage();
+	        }
+	        imageFromUrl(path);
+	});
   finishedLoading();
 };
 
@@ -106,7 +112,8 @@ var initViewer = function() {
 // Set configuration options for requirejs
 var config = {
     paths: {
-        'cs': '/cs'
+        'cs': '/cs',
+        'coffee-script': '/coffee-script'
     }
 };
 require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnotator, _astroJsFits) {
@@ -117,17 +124,17 @@ require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnot
     initHTMLControls();
     
     $('#dropbox').on("dragenter", noopHandler);
-		$('#dropbox').on("dragexit", noopHandler);
-		$('#dropbox').on("dragover", noopHandler);
+    $('#dropbox').on("dragexit", noopHandler);
+    $('#dropbox').on("dragover", noopHandler);
     $('#canvasArea').on('mousedown', handleMousedown);
-		$('#canvasArea').on('mouseup', handleMouseup);
-		$('#canvasArea').on('mousemove', handleMousemove);
-		$('#canvasArea').on('mouseout', handleMouseout);
-		$('#display').on('mousewheel', handleMousewheel);
+    $('#canvasArea').on('mouseup', handleMouseup);
+    $('#canvasArea').on('mousemove', handleMousemove);
+    $('#canvasArea').on('mouseout', handleMouseout);
+    $('#display').on('mousewheel', handleMousewheel);
 		
-		// Bring up an existing image if one is saved to the dashboard state
-		if (savedImagePath != undefined)
-			imageFromUrl(savedImagePath);
+    // Bring up an existing image if one is saved to the dashboard state
+    if (savedImagePath != undefined)
+        imageFromUrl(savedImagePath);
 
     // fits.onHoverPixelChanged = function(pixelInfo){
     //   var x = document.getElementById("xCoordinate");
@@ -146,23 +153,23 @@ require(config, ['canvasAnnotator', 'cs!/astroJS/display'], function(canvasAnnot
 // the display canvas is the surface onto which the other canvases are displayed
 var initCanvases = function() {
 	display = document.getElementById('display');
-  var canvasArea = document.getElementById('canvasArea');
+	var canvasArea = document.getElementById('canvasArea');
 	
-	display.width = canvasArea.offsetWidth;
-	display.height = canvasArea.offsetHeight;
-  displayContext = display.getContext('2d');
-  displayWidth = display.width;
-  displayHeight = display.height;
+    display.width = canvasArea.offsetWidth;
+    display.height = canvasArea.offsetHeight;
+    displayContext = display.getContext('2d');
+    displayWidth = display.width;
+    displayHeight = display.height;
   
-  annotatorCanvas = document.createElement('canvas');
-  annotatorCanvas.setAttribute('width', displayWidth);
-  annotatorCanvas.setAttribute('height', displayHeight);
-  editCanvas = document.createElement('canvas');
-  editCanvas.setAttribute('width', displayWidth);
-  editCanvas.setAttribute('height', displayHeight);
-  editContext = editCanvas.getContext('2d');
-  editContext.fillStyle = "white";
-  editContext.globalAlpha = 0.5;
+    annotatorCanvas = document.createElement('canvas');
+    annotatorCanvas.setAttribute('width', displayWidth);
+    annotatorCanvas.setAttribute('height', displayHeight);
+    editCanvas = document.createElement('canvas');
+    editCanvas.setAttribute('width', displayWidth);
+    editCanvas.setAttribute('height', displayHeight);
+    editContext = editCanvas.getContext('2d');
+    editContext.fillStyle = "white";
+    editContext.globalAlpha = 0.5;
 }
 
 // Send a file object to the FITS parser to be displayed
@@ -182,6 +189,36 @@ var renderFile = function(file) {
 		  renderSuccess();
 	};
 	reader.readAsArrayBuffer(file);
+}
+
+// Makes an AJAX request through the server and sends the result to the FITS parser to be displayed
+var imageFromUrl = function(path) {
+    if (path == "None")
+		return;
+	
+	$('#init').hide();
+	gadget.resize();
+		
+	// Send an http response to the FITS parser to be displayed
+	var renderImage = function(response) {
+		// convert string object into a binary object
+		var byteArray = new Uint8Array(response.length);
+		for (var i = 0; i < response.length; i++) {
+				byteArray[i] = response.charCodeAt(i) & 0xff;
+		}
+		//fits.renderImage(file, fitsCanvas, renderSuccess);
+		astroJsFits.init1(byteArray.buffer);
+		fitsHeader = astroJsFits.getHeader();
+		renderSuccess();
+	}
+
+	$('#dropLabel').html('Loading file...');
+	$('#loadingBar').show();
+
+	$.ajax({
+		'url': '/xhrProxy/' + encodeURIComponent(path),
+		success: renderImage 
+	});
 }
 
 var setImageExtremes = function(lower, upper) {
@@ -218,27 +255,6 @@ var renderSuccess = function(){
 	editCanvas.setAttribute('height', $('#display').height());
 	annotator.init(annotatorCanvas, astroJsFits.pixToScreen, showAnnotations);
   
-  // Initalize the wcsjs module
-  wcs = new WCS.Mapper(fitsHeader);
-  // Send the image boundaries to the dashboard
-  var topLeft = wcs.pixelToCoordinate([parseFloat(imageDimensions.width), parseFloat(imageDimensions.height)]);
-  var bottomRight = wcs.pixelToCoordinate([0, 0]);
-  var curBounds = { topLeft: {ra: topLeft.ra, dec: topLeft.dec },
-                    bottomRight: {ra: bottomRight.ra, dec: bottomRight.dec} };
-  
-  if (curBounds.topLeft.ra > curBounds.bottomRight.ra) {
-  	var a = curBounds.topLeft.ra;
-  	curBounds.topLeft.ra = curBounds.bottomRight.ra;
-  	curBounds.bottomRight.ra = a;
-  }
-  if (curBounds.topLeft.dec < curBounds.bottomRight.dec) {
-  	var a = curBounds.topLeft.dec;
-  	curBounds.topLeft.dec = curBounds.bottomRight.dec;
-  	curBounds.bottomRight.dec = a;
-  }
-  
-  gadget.notify('viewBoundsChanged', {'bounds': curBounds, 'source': 'fitsViewer'});
-  
   // Load up a dataset if one was saved
   if (selectedDataSetId != -1)
   	addDataSetPoints();
@@ -258,6 +274,27 @@ var renderSuccess = function(){
 	});
 	gadget.resize();
 	draw();
+	
+	 // Initalize the wcsjs module
+  wcs = new WCS.Mapper(fitsHeader);
+  // Send the image boundaries to the dashboard
+  var topLeft = wcs.pixelToCoordinate([parseFloat(imageDimensions.width), parseFloat(imageDimensions.height)]);
+  var bottomRight = wcs.pixelToCoordinate([0, 0]);
+  var curBounds = { topLeft: {ra: topLeft.ra, dec: topLeft.dec },
+                    bottomRight: {ra: bottomRight.ra, dec: bottomRight.dec} };
+  
+  if (curBounds.topLeft.ra > curBounds.bottomRight.ra) {
+  	var a = curBounds.topLeft.ra;
+  	curBounds.topLeft.ra = curBounds.bottomRight.ra;
+  	curBounds.bottomRight.ra = a;
+  }
+  if (curBounds.topLeft.dec < curBounds.bottomRight.dec) {
+  	var a = curBounds.topLeft.dec;
+  	curBounds.topLeft.dec = curBounds.bottomRight.dec;
+  	curBounds.bottomRight.dec = a;
+  }
+  
+  gadget.notify('viewBoundsChanged', {'bounds': curBounds, 'source': 'fitsViewer'});
 };
 
 // Draw the fits image, annotations, and edit marks
@@ -289,7 +326,6 @@ var selectAnnotations = function(start, end) {
 		return;
 	setTimeout(function() { selectedDataSet.setRecords({'color': colorName}, idsToColor); }, .1);
 }
-
 // If a dataset is selected, sync the color of the annotations up with the 
 // color of the points in the dataset
 var updateSelectedPoints = function() {
@@ -385,6 +421,10 @@ var finishDrag = function(e) {
 													 		 'width': end.x-start.x, 'height': end.y-start.y, 
 															 'label': "rect"});
  			document.getElementById("annoSelect").add(new Option("rect", "0"), null);
+ 			
+ 			gadget.notify('queryBoundsChanged', {
+ 			        'x': wcs.wcsobj.absPixX+start.x, 'y':wcs.wcsobj.absPixY+start.y, 'height':end.y-start.y, 'width':end.x-start.x
+ 			});
 		}
 		else if (selectedAnnoType == ANNO_TYPE.CIRCLE) {
 			annotator.addCircleRegion({'xPos': start.x, 'yPos': start.y, 'radius': Math.abs(end.x-start.x), label: ["another"]});
@@ -477,35 +517,6 @@ var handleMousemove = function(e) {
 	else
 		annotator.handleMousemove(e);
 	draw();
-}
-
-// Makes an AJAX request through the server and sends the result to the FITS parser to be displayed
-var imageFromUrl = function(path) {
-	$('#init').hide();
-	gadget.resize();
-	if (path == "None")
-		return;
-		
-	// Send an http response to the FITS parser to be displayed
-	var renderImage = function(response) {
-		// convert string object into a binary object
-		var byteArray = new Uint8Array(response.length);
-		for (var i = 0; i < response.length; i++) {
-				byteArray[i] = response.charCodeAt(i) & 0xff;
-		}
-		//fits.renderImage(file, fitsCanvas, renderSuccess);
-		astroJsFits.init1(byteArray.buffer);
-		fitsHeader = astroJsFits.getHeader();
-		renderSuccess();
-	}
-
-	$('#dropLabel').html('Loading file...');
-	$('#loadingBar').show();
-
-	$.ajax({
-		'url': '/xhrProxy/' + encodeURIComponent(path),
-		success: renderImage 
-	});
 }
   
 // HTML controls
