@@ -19,7 +19,17 @@
     <div id="content" class="extraPadding">
         <h2>SciDB Co-Add</h2>
         <div style="display: inline-block; ">
-            <div style="float: left">
+            <div style="float: right; margin-left:20px">
+                <input id="z_scale" type="checkbox" /><span>Sigma Cliping</span><input id="z_value" type="text" style="margin: 0px 0px 0px 30px"/><br />
+                <input id="boundingBox" type="checkbox" onchange="updateQuery()"/><span>Bounding Box</span>
+                <div style="margin: 0px 0px 0px 30px">
+                    <input id="ra_min" type="text" placeholder="ra min" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
+                    <input id="ra_max" type="text" placeholder="ra max" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/><br />
+                    <input id="dec_min" type="text" placeholder="dec min" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
+                    <input id="dec_max" type="text" placeholder="dec max" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
+                </div>
+            </div>
+            <div style="float: left; ">
                 <div>
                 Table: 
                     <select id="tableName" style="margin-left: 16px" onchange="updateQuery()">
@@ -36,16 +46,7 @@
                     </select>
                 </div>
             </div>
-            <div style="float: right; margin-left: 150px">
-                <input id="z_scale" type="checkbox" /><span>Sigma Cliping</span><input id="z_value" type="text" style="margin: 0px 0px 0px 30px"/><br />
-                <input id="boundingBox" type="checkbox" onchange="updateQuery()"/><span>Bounding Box</span>
-                <div style="margin: 0px 0px 0px 30px">
-                    <input id="ra_min" type="text" placeholder="ra min" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
-                    <input id="ra_max" type="text" placeholder="ra max" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/><br />
-                    <input id="dec_min" type="text" placeholder="dec min" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
-                    <input id="dec_max" type="text" placeholder="dec max" onchange="updateQuery()" style="margin: 0px 0px 0px 3px"/>
-                </div>
-            </div>
+            
         </div>
         <div>
             <div>
@@ -135,31 +136,12 @@ function updateQuery() {
         
         var stg = {
             "NAXIS": 2,
-            "NAXIS1": 4000,
-            "NAXIS2": 4000,
-            "CRPIX1": 392000,
-            "CRPIX2": 325345,
+            "CRPIX1": 388250,
+            "CRPIX2": 313595,
             "CRVAL1": 60,
-            "CRVAL2": 10.81231696,
-            
-            "CUNIT1": 'deg     ',                                                            
-            "CUNIT2" : 'deg     ',
-            //"CDELT1": -0.00005555555556,
-            //"CDELT2": 0.00005555555556,
-            "CRVAL1A": 307750, // Column pixel of Reference Pixel                
-            "CRVAL2A": 275750, // Row pixel of Reference Pixel                   
-            "CRPIX1A": 1, // Column Pixel Coordinate of Reference           
-            "CRPIX2A": 1, // Row Pixel Coordinate of Reference              
-            "CTYPE1A": 'LINEAR  ',           // Type of projection                             
-            "CTYPE2A": 'LINEAR  ',           // Type of projection                             
-            "CUNIT1A": 'PIXEL   ',           // Column unit                                    
-            "CUNIT2A": 'PIXEL   ',           // Row unit
-
-            "LONPOLE": 180.0,
-            "LATPOLE": 10.81231696,
+            "CRVAL2": 10.8123169635717,
             "CTYPE1": "RA---STG",
             "CTYPE2": "DEC--STG",
-            
             "CD1_1": -0.000055555555,
             "CD1_2": 0,
             "CD2_1": 0,
