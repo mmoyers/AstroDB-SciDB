@@ -928,7 +928,7 @@ $(document).ready(function() {
         function(event) {
             //loadFromUrl($(getElement("imageUrl")).val());
             
-            var path = "http://rio.cs.washington.edu:5551/get/m101_r.fits";
+            var path = "http://vega.cs.washington.edu:5551/get/m101_r.fits";
             loadFromUrl(path);
         }
     );

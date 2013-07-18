@@ -37,7 +37,8 @@
                         <option value="CCDF_SAMPLE_SUB">CCDF_SAMPLE_SUB</option>
                         <option value="CCD_DEMO2">CCD_DEMO2</option>
                         <option value="CCDNEW">CCDNEW</option>
-                    </select>
+                    	<option value="subarray(CCD,0,308750,276750,24,309749,277249)">Q1</option>
+		    </select>
                 </div>
                 <div>
                 Aggerate Function:
@@ -66,7 +67,7 @@
 <script type="text/javascript" src="/astrojs/wcs.js"></script>
 <script type="text/javascript">
 
-var scidbServerAPI = "http://rio.cs.washington.edu:5551/"
+var scidbServerAPI = "http://vega.cs.washington.edu:5551/"
   
 // Status Icons
 var ICON_URL_SELECTED = '/images/targetYellow.png';
@@ -124,7 +125,7 @@ function updateQuery() {
     var agg_text = agg.options[agg.selectedIndex].text;
     
     var table = document.getElementById("tableName");
-    var table_text = table.options[table.selectedIndex].text;
+    var table_text = table.options[table.selectedIndex].value;
     
     var subtable_text;
     
