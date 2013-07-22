@@ -37,7 +37,7 @@
                         <option value="CCDF_SAMPLE_SUB">CCDF_SAMPLE_SUB</option>
                         <option value="CCD_DEMO2">CCD_DEMO2</option>
                         <option value="CCDNEW">CCDNEW</option>
-                    	<option value="subarray(CCD,0,308750,276750,24,309749,277249)">Q1</option>
+                    	<option value="subarray(CCD,0,276750,308750,24,277749,309249)">Q1</option>
 		    </select>
                 </div>
                 <div>
@@ -137,8 +137,8 @@ function updateQuery() {
         
         var stg = {
             "NAXIS": 2,
-            "CRPIX1": 388250,
-            "CRPIX2": 313595,
+            "CRPIX1": 440250,
+            "CRPIX2": 353595,
             "CRVAL1": 60,
             "CRVAL2": 10.8123169635717,
             "CTYPE1": "RA---STG",
@@ -157,8 +157,8 @@ function updateQuery() {
         var pix_max = wcs.coordinateToPixel(sky[0], sky[1]);
         
         table_text = "subarray(" + table_text + ", 0, " + 
-            parseInt(pix_min.x+308000) + ", " + parseInt(pix_min.y+276000) + ", 24, " + 
-            parseInt(pix_max.x+308000) + ", " + parseInt(pix_max.y+276000) + ")";
+            parseInt(pix_min.y+247750) + ", " + parseInt(pix_min.x+259750) + ", 24, " + 
+            parseInt(pix_max.y+247750) + ", " + parseInt(pix_max.x+259750) + ")";
     }
     
     document.getElementById('txtQueryString').value = "select " + agg_text +  "(data) from " + table_text + " group by row, col";
@@ -183,10 +183,10 @@ function showStatus(iconUrl, text) {
 }
 
 window.onload = function() {
-    $("#ra_min").attr("value", "81.13358");
-    $("#dec_min").attr("value", "-7.13935");
-    $("#ra_max").attr("value", "81.00277");
-    $("#dec_max").attr("value", "-7.00933");
+    $("#ra_min").attr("value", "81.146788");
+    $("#dec_min").attr("value", "-7.1579849");
+    $("#ra_max").attr("value", "81.099268");
+    $("#dec_max").attr("value", "-7.1062816");
     
     // Set Up Buttons
     $('#submitQuery').on("click", function() {
