@@ -94,6 +94,6 @@ app.post('/dataSet/', function(req, res){
 });           
 
 if (!module.parent) {
-  app.listen(80);
+  app.listen(7568);
   console.log("ASCOT server listening on port %d", app.address().port);
 }
